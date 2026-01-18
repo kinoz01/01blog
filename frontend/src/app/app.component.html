@@ -1,0 +1,95 @@
+<div class="app-shell d-flex flex-column min-vh-100">
+  <header class="app-header container py-4">
+    <div class="header-bar d-flex align-items-center justify-content-between">
+      <a routerLink="/home" class="brand text-decoration-none text-white" (click)="closeMenu()">
+        <span class="brand-mark">B</span>
+        <span class="ms-2">log</span>
+      </a>
+      <button
+        type="button"
+        class="menu-toggle d-lg-none"
+        (click)="toggleMenu()"
+        aria-label="Toggle navigation"
+        [attr.aria-expanded]="isMenuOpen"
+      >
+        <i class="bi" [ngClass]="{ 'bi-list': !isMenuOpen, 'bi-x-lg': isMenuOpen }"></i>
+      </button>
+      <nav class="nav-links d-none d-lg-flex align-items-center gap-3">
+        <ng-container *ngTemplateOutlet="navItems"></ng-container>
+      </nav>
+    </div>
+    <div class="mobile-menu d-lg-none" *ngIf="isMenuOpen">
+      <ng-container *ngTemplateOutlet="navItems"></ng-container>
+    </div>
+  </header>
+
+  <main class="flex-grow-1">
+    <ng-container *ngIf="isAuthRoute; else homeView">
+      <div class="container py-4 py-xl-5">
+        <div class="row align-items-center g-4 g-xl-5">
+          <div class="col-lg-6 text-white hero-copy">
+            <span class="badge rounded-pill text-bg-dark-subtle text-uppercase small mb-3">Students first</span>
+            <h1 class="display-5 fw-semibold mb-3">
+              Tell the story of what you are learning in real time.
+            </h1>
+            <p class="text-white-50 mb-5">
+              Blog keeps your learning journey organized, beautiful, and social. Share weekly updates,
+              celebrate breakthroughs, and stay accountable with your cohort.
+            </p>
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <div class="stat-tile">
+                  <span class="label">Active learners</span>
+                  <strong>2.4k+</strong>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="stat-tile">
+                  <span class="label">Peer feedback shared</span>
+                  <strong>18k</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <router-outlet></router-outlet>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #homeView>
+      <div class="container py-4 py-xl-5">
+        <router-outlet></router-outlet>
+      </div>
+    </ng-template>
+  </main>
+
+  <footer class="container text-center text-white-50 py-4 small">
+    © {{ currentYear }} Blog. Built for curious minds.
+  </footer>
+</div>
+
+<ng-template #navItems>
+  <a
+    *ngIf="isAuthenticated"
+    routerLink="/home"
+    routerLinkActive="active-link"
+    class="nav-link"
+    (click)="closeMenu()"
+    >Home</a
+  >
+  <ng-container *ngIf="!isAuthenticated; else loggedInNav">
+    <a routerLink="/login" routerLinkActive="active-link" class="nav-link" (click)="closeMenu()">Login</a>
+    <a
+      routerLink="/register"
+      routerLinkActive="active-link"
+      class="btn btn-light rounded-pill px-4"
+      (click)="closeMenu()"
+      >Join</a
+    >
+  </ng-container>
+  <ng-template #loggedInNav>
+    <button type="button" class="btn btn-outline-light rounded-pill px-4" (click)="logout()">Logout</button>
+  </ng-template>
+</ng-template>

@@ -1,0 +1,38 @@
+.auth-panel {
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 100%;
+  max-width: 520px;
+  margin-left: auto;
+}
+
+.icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.12);
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+}
+
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4a5568;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+
+    &::before {
+      content: '\f26a';
+      font-family: 'bootstrap-icons';
+      color: #0d6efd;
+    }
+  }
+}

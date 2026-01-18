@@ -1,0 +1,91 @@
+<section class="feed-shell" aria-live="polite">
+  <div class="feed-hero shadow-sm rounded-4">
+    <div>
+      <p class="eyebrow">Your feed</p>
+      <h1>Keep your cohort in the loop.</h1>
+      <p>
+        Share progress, sketches, or demos with a quick update. When your classmates publish something new, it will
+        surface here.
+      </p>
+    </div>
+    <button class="btn btn-primary btn-lg" type="button" (click)="openComposer()">New post</button>
+  </div>
+
+  <div *ngIf="loadError" class="alert alert-danger" role="alert">{{ loadError }}</div>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-light" role="status"></div>
+  </div>
+
+  <div *ngIf="!isLoading && posts.length === 0" class="empty-state">
+    <p class="eyebrow">Nothing yet</p>
+    <h2>Be the first to publish.</h2>
+    <p class="text-white-50">Draft a quick note, attach a few screenshots, and hit publish.</p>
+    <button class="btn btn-outline-light" type="button" (click)="openComposer()">Start writing</button>
+  </div>
+
+  <div class="post-grid" *ngIf="posts.length > 0">
+    <article class="post-card" *ngFor="let post of posts; trackBy: trackByPost">
+      <header class="post-header">
+        <div>
+          <p class="author">{{ post.author.name }}</p>
+          <p class="timestamp">{{ post.createdAt | date: 'medium' }}</p>
+        </div>
+      </header>
+      <h3>{{ post.title }}</h3>
+      <p class="description">{{ post.description }}</p>
+      <div class="media-grid" *ngIf="post.media?.length">
+        <ng-container *ngFor="let media of post.media">
+          <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || post.title" />
+          <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
+        </ng-container>
+      </div>
+    </article>
+  </div>
+</section>
+
+<div class="modal-backdrop" *ngIf="composerOpen">
+  <div class="modal" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Create a post</h2>
+      <button type="button" class="btn-close" aria-label="Close" (click)="closeComposer()"></button>
+    </header>
+    <form [formGroup]="postForm" (ngSubmit)="submitPost()" novalidate>
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input type="text" class="form-control" formControlName="title" placeholder="Give your post a name" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea
+          rows="4"
+          class="form-control"
+          formControlName="description"
+          placeholder="What did you learn, fix, or ship?"
+        ></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Media (optional, up to 10 files)</label>
+        <input type="file" class="form-control" multiple (change)="onFilesSelected($event)" />
+      </div>
+      <div class="media-previews" *ngIf="mediaPreviews.length">
+        <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
+          <button type="button" class="btn-close" aria-label="Remove" (click)="removeMedia(i)"></button>
+          <img *ngIf="media.kind === 'image'" [src]="media.previewUrl" alt="Media preview" />
+          <video *ngIf="media.kind === 'video'" [src]="media.previewUrl" controls></video>
+        </div>
+      </div>
+      <div *ngIf="composerError" class="alert alert-danger" role="alert">{{ composerError }}</div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeComposer()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting">
+          <span *ngIf="!submitting">Publish</span>
+          <span *ngIf="submitting" class="d-inline-flex align-items-center gap-2">
+            <span class="spinner-border spinner-border-sm"></span>
+            Posting...
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

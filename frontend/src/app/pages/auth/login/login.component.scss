@@ -1,0 +1,17 @@
+.auth-panel {
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+}
+
+.icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+}

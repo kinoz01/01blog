@@ -1,0 +1,105 @@
+.app-shell {
+  background: transparent;
+}
+
+.app-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header-bar {
+  gap: 1rem;
+}
+
+.nav-links {
+  .btn {
+    white-space: nowrap;
+  }
+}
+
+.menu-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border-radius: 999px;
+  width: 44px;
+  height: 44px;
+  background: rgba(15, 23, 42, 0.5);
+  display: grid;
+  place-items: center;
+}
+
+.mobile-menu {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1rem;
+  padding: 1rem;
+
+  .nav-link,
+  .btn {
+    width: 100%;
+    text-align: left;
+  }
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(120deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.95rem;
+  }
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  transition: color 0.2s ease;
+
+  &.active-link,
+  &:hover {
+    color: #fff;
+  }
+}
+
+.hero-copy {
+  .stat-tile {
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+
+    .label {
+      display: block;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 0.35rem;
+    }
+
+    strong {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+}
+
+@media (max-width: 991px) {
+  .nav-links .btn {
+    padding: 0.5rem 1.5rem;
+  }
+}

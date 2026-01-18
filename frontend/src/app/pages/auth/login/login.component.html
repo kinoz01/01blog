@@ -1,0 +1,58 @@
+<section class="auth-panel shadow-lg rounded-4 bg-white p-4 p-xl-5">
+  <div class="d-flex align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <p class="text-uppercase text-muted fw-semibold small mb-1">Welcome back</p>
+      <h2 class="h4 fw-bold mb-0">Sign in to your block</h2>
+    </div>
+    <div class="icon-circle text-primary-subtle">
+      <i class="bi bi-lightning-charge-fill"></i>
+    </div>
+  </div>
+
+  <p class="text-muted mb-4">Pick up where you left off and keep sharing what you are building today.</p>
+
+  <div *ngIf="errorMessage" class="alert alert-danger mb-3" role="alert">
+    {{ errorMessage }}
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-floating mb-3">
+      <input
+        type="email"
+        class="form-control"
+        id="email"
+        placeholder="name@school.edu"
+        formControlName="email"
+        [class.is-invalid]="fieldInvalid('email')"
+      />
+      <label for="email">School email</label>
+      <div class="invalid-feedback">Use a valid email like name&#64;school.edu</div>
+    </div>
+
+    <div class="form-floating mb-4">
+      <input
+        type="password"
+        class="form-control"
+        id="password"
+        placeholder="••••••••"
+        formControlName="password"
+        [class.is-invalid]="fieldInvalid('password')"
+      />
+      <label for="password">Password</label>
+      <div class="invalid-feedback">Passwords must be at least 8 characters.</div>
+    </div>
+
+    <button class="btn btn-primary w-100 py-3" type="submit" [disabled]="isSubmitting">
+      <span *ngIf="!isSubmitting">Log in</span>
+      <span *ngIf="isSubmitting" class="d-inline-flex align-items-center justify-content-center gap-2">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Logging in...
+      </span>
+    </button>
+  </form>
+
+  <p class="text-center text-muted mt-4 mb-0">
+    New to Blog?
+    <a routerLink="/register" class="fw-semibold text-decoration-none">Create an account</a>
+  </p>
+</section>
