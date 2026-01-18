@@ -44,11 +44,13 @@
   </div>
 </section>
 
-<div class="modal-backdrop" *ngIf="composerOpen">
-  <div class="modal" role="dialog" aria-modal="true">
-    <header class="modal-header">
+<div class="composer-backdrop" *ngIf="composerOpen">
+  <div class="composer-dialog" role="dialog" aria-modal="true">
+    <header class="composer-header">
       <h2>Create a post</h2>
-      <button type="button" class="btn-close" aria-label="Close" (click)="closeComposer()"></button>
+      <button type="button" class="composer-close" aria-label="Close" (click)="closeComposer()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
     </header>
     <form [formGroup]="postForm" (ngSubmit)="submitPost()" novalidate>
       <div class="mb-3">
@@ -70,13 +72,15 @@
       </div>
       <div class="media-previews" *ngIf="mediaPreviews.length">
         <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
-          <button type="button" class="btn-close" aria-label="Remove" (click)="removeMedia(i)"></button>
+          <button type="button" class="composer-close preview-close" aria-label="Remove" (click)="removeMedia(i)">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
           <img *ngIf="media.kind === 'image'" [src]="media.previewUrl" alt="Media preview" />
           <video *ngIf="media.kind === 'video'" [src]="media.previewUrl" controls></video>
         </div>
       </div>
       <div *ngIf="composerError" class="alert alert-danger" role="alert">{{ composerError }}</div>
-      <div class="modal-actions">
+      <div class="composer-actions">
         <button type="button" class="btn btn-outline-secondary" (click)="closeComposer()">Cancel</button>
         <button type="submit" class="btn btn-primary" [disabled]="submitting">
           <span *ngIf="!submitting">Publish</span>

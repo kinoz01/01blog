@@ -26,6 +26,8 @@ export class HomeComponent implements OnDestroy, OnInit {
   loadError = '';
   composerError = '';
   mediaPreviews: MediaPreview[] = [];
+  private readonly supportedVideoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/ogg']);
+  private readonly supportedVideoExtensions = new Set(['mp4', 'webm', 'ogg']);
 
   private readonly fb = inject(FormBuilder);
   private readonly postService = inject(PostService);
@@ -91,6 +93,10 @@ export class HomeComponent implements OnDestroy, OnInit {
         this.composerError = 'Only image or video files are allowed.';
         continue;
       }
+      if (file.type.startsWith('video/') && !this.isSupportedVideo(file)) {
+        this.composerError = 'Unsupported video format. Please use MP4, WebM, or Ogg files.';
+        continue;
+      }
       const previewUrl = URL.createObjectURL(file);
       this.mediaPreviews.push({
         file,
@@ -143,5 +149,14 @@ export class HomeComponent implements OnDestroy, OnInit {
   private resetMediaPreviews(): void {
     this.mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
     this.mediaPreviews = [];
+  }
+
+  private isSupportedVideo(file: File): boolean {
+    const mimeType = file.type?.toLowerCase();
+    if (mimeType && this.supportedVideoMimeTypes.has(mimeType)) {
+      return true;
+    }
+    const extension = file.name?.split('.').pop()?.toLowerCase();
+    return !!extension && this.supportedVideoExtensions.has(extension);
   }
 }
