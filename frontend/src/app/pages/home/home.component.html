@@ -55,7 +55,16 @@
     <form [formGroup]="postForm" (ngSubmit)="submitPost()" novalidate>
       <div class="mb-3">
         <label class="form-label">Title</label>
-        <input type="text" class="form-control" formControlName="title" placeholder="Give your post a name" />
+        <input
+          type="text"
+          class="form-control"
+          formControlName="title"
+          placeholder="Give your post a name"
+          [attr.maxlength]="titleMaxLength"
+        />
+        <div class="form-text text-end">
+          {{ titleLength }}/{{ titleMaxLength }} characters
+        </div>
       </div>
       <div class="mb-3">
         <label class="form-label">Description</label>
@@ -64,11 +73,16 @@
           class="form-control"
           formControlName="description"
           placeholder="What did you learn, fix, or ship?"
+          [attr.maxlength]="descriptionMaxLength"
         ></textarea>
+        <div class="form-text text-end">
+          {{ descriptionLength }}/{{ descriptionMaxLength }} characters
+        </div>
       </div>
       <div class="mb-3">
         <label class="form-label">Media (optional, up to 10 files)</label>
         <input type="file" class="form-control" multiple (change)="onFilesSelected($event)" />
+        <div class="form-text">Images must be PNG, JPG, GIF, or WebP. SVG files are not supported.</div>
       </div>
       <div class="media-previews" *ngIf="mediaPreviews.length">
         <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">

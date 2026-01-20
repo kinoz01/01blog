@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.tika.Tika;
@@ -44,6 +45,9 @@ public class MediaStorageService {
 		if (!mimeType.startsWith("image/") && !mimeType.startsWith("video/")) {
 			throw new MediaStorageException("Only image and video files are allowed");
 		}
+		if (isSvgFile(mimeType, file.getOriginalFilename())) {
+			throw new MediaStorageException("SVG images are not allowed");
+		}
 		String extension = resolveExtension(mimeType, file.getOriginalFilename());
 		String fileName = UUID.randomUUID() + extension;
 		Path target = storagePath.resolve(fileName);
@@ -81,6 +85,14 @@ public class MediaStorageService {
 			return mediaBaseUrl.endsWith("/") ? mediaBaseUrl + filename : mediaBaseUrl + "/" + filename;
 		}
 		return mediaBaseUrl.endsWith("/") ? mediaBaseUrl + filename : mediaBaseUrl + "/" + filename;
+	}
+
+	private boolean isSvgFile(String mimeType, String originalName) {
+		if (mimeType != null && mimeType.toLowerCase(Locale.ROOT).contains("svg")) {
+			return true;
+		}
+		String extension = StringUtils.getFilenameExtension(originalName);
+		return extension != null && extension.equalsIgnoreCase("svg");
 	}
 
 	public record StoredMedia(String fileName, String mimeType, String url, String originalFileName) {

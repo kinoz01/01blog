@@ -22,11 +22,12 @@ run-db:
 		echo "Docker Compose is required to start PostgreSQL."; \
 		exit 1; \
 	fi; \
-	CONTAINER_NAME="blog-postgres"; \
-	if docker ps -a --format '{{.Names}}' | grep -Fxq "$$CONTAINER_NAME"; then \
-		echo "Removing stale PostgreSQL container $$CONTAINER_NAME ..."; \
-		docker rm -f "$$CONTAINER_NAME" >/dev/null 2>&1 || true; \
-	fi; \
+	for CONTAINER_NAME in blog-postgres; do \
+		if docker ps -a --format '{{.Names}}' | grep -Fxq "$$CONTAINER_NAME"; then \
+			echo "Removing stale container $$CONTAINER_NAME ..."; \
+			docker rm -f "$$CONTAINER_NAME" >/dev/null 2>&1 || true; \
+		fi; \
+	done; \
 	$$COMPOSE_CMD -f docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true; \
 	echo "Starting PostgreSQL via $$COMPOSE_CMD ..."; \
 	$$COMPOSE_CMD -f docker-compose.yml up -d postgres >/dev/null

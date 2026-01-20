@@ -24,6 +24,8 @@ import com.example.blog.service.MediaStorageService.StoredMedia;
 public class PostService {
 
 	private static final int MAX_MEDIA = 10;
+	private static final int MAX_TITLE_LENGTH = 120;
+	private static final int MAX_DESCRIPTION_LENGTH = 2000;
 
 	private final PostRepository postRepository;
 	private final MediaStorageService mediaStorageService;
@@ -46,16 +48,24 @@ public class PostService {
 		if (!StringUtils.hasText(title)) {
 			throw new BadRequestException("Title is required");
 		}
+		String normalizedTitle = title.trim();
+		if (normalizedTitle.length() > MAX_TITLE_LENGTH) {
+			throw new BadRequestException("Title must be " + MAX_TITLE_LENGTH + " characters or fewer");
+		}
 		if (!StringUtils.hasText(description)) {
 			throw new BadRequestException("Description is required");
+		}
+		String normalizedDescription = description.trim();
+		if (normalizedDescription.length() > MAX_DESCRIPTION_LENGTH) {
+			throw new BadRequestException("Description must be " + MAX_DESCRIPTION_LENGTH + " characters or fewer");
 		}
 		List<MultipartFile> mediaFiles = files == null ? List.of() : files;
 		if (mediaFiles.size() > MAX_MEDIA) {
 			throw new BadRequestException("You can upload up to " + MAX_MEDIA + " media files per post");
 		}
 		Post post = new Post();
-		post.setTitle(title.trim());
-		post.setDescription(description.trim());
+		post.setTitle(normalizedTitle);
+		post.setDescription(normalizedDescription);
 		post.setAuthor(owner);
 
 		List<StoredMedia> storedMedia = new ArrayList<>();

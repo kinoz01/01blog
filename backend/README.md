@@ -1,12 +1,12 @@
 # Blog API
 
-The Blog backend exposes secure authentication endpoints that power the social learning experience. It is a Spring Boot 3 service that ships with JWT authentication, relational storage (PostgreSQL or in-memory H2 for quick starts), rate limiting, and method-level authorization.
+The Blog backend exposes secure authentication endpoints that power the social learning experience. It is a Spring Boot 3 service that ships with JWT authentication, relational storage (PostgreSQL), rate limiting, and method-level authorization.
 
 ## Features
 
 - **Auth & JWT** – `/api/auth/register`, `/api/auth/login`, and `/api/auth/me` issue signed tokens and return typed user profiles.
 - **Role-aware users** – `USER` and `ADMIN` roles are persisted through Spring Data JPA entities.
-- **Relational storage** – PostgreSQL by default (via `docker-compose`) powers the app locally; tests still use an in-memory H2 database.
+- **Relational storage** – PostgreSQL (via `docker-compose`) powers the app locally.
 - **Security hardened** – Spring Security, stateless sessions, bcrypt hashing, and a request throttling filter with centralized exception handling.
 - **Posts + media** – Authenticated users can publish posts with up to 10 images/videos; uploads are validated via Apache Tika before being persisted to disk.
 
@@ -56,7 +56,7 @@ cd backend
 make run  # spins up postgres via docker-compose and starts Spring Boot
 ```
 
-The backend now targets PostgreSQL by default. `make run-db` (or `make run`) uses Docker Compose to start the `blog-postgres` container, and the application connects via the credentials stored in `.env.local`. Automated tests (`./mvnw clean test`) still use an embedded H2 database defined under `src/test/resources`.
+The backend now targets PostgreSQL by default. `make run-db` (or `make run`) uses Docker Compose to start the `blog-postgres` container, and the application connects via the credentials stored in `.env.local`. Automated tests (`./mvnw clean test`) use the same PostgreSQL instance, so make sure the database is running before executing them.
 
 ### 2. Hit the API
 
@@ -104,7 +104,7 @@ On startup the `DataInitializer` bean ensures there is always an administrative 
 
 | Command | Description |
 | --- | --- |
-| `./mvnw clean test` | Compile & run unit tests (uses H2). |
+| `./mvnw clean test` | Compile & run unit tests (requires PostgreSQL). |
 | `make run` | Load `.env.local`, boot PostgreSQL (Docker) and run the app. |
 | `make stop` | Stop the Spring Boot process and dockerized database. |
 | `make build` | Package the application jar. |

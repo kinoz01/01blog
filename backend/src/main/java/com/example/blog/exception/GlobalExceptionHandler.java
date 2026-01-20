@@ -87,8 +87,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(MediaStorageException.class)
 	public ResponseEntity<ApiError> handleMediaStorage(MediaStorageException ex, WebRequest request) {
-		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-				ex.getMessage() == null ? "Unable to store media" : ex.getMessage(), request);
+		String message = ex.getMessage() == null ? "Unable to store media" : ex.getMessage();
+		return buildResponse(HttpStatus.BAD_REQUEST, message, request);
 	}
 
 	@ExceptionHandler(Exception.class)

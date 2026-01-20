@@ -103,7 +103,7 @@ _db-up:
 	fi; \
 	echo "Starting PostgreSQL container using $$COMPOSE_CMD ..."; \
 	$$COMPOSE_CMD up -d postgres; \
-	echo "PostgreSQL container is ready."
+	echo "Database container is ready."
 
 _db-down:
 	@set -e; \

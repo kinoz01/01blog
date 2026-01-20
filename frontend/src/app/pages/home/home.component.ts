@@ -36,6 +36,16 @@ export class HomeComponent implements OnDestroy, OnInit {
     title: ['', [Validators.required, Validators.maxLength(120)]],
     description: ['', [Validators.required, Validators.maxLength(2000)]]
   });
+  readonly titleMaxLength = 120;
+  readonly descriptionMaxLength = 2000;
+
+  get titleLength(): number {
+    return this.postForm.controls.title.value?.length ?? 0;
+  }
+
+  get descriptionLength(): number {
+    return this.postForm.controls.description.value?.length ?? 0;
+  }
 
   ngOnInit(): void {
     this.loadPosts();
@@ -93,6 +103,10 @@ export class HomeComponent implements OnDestroy, OnInit {
         this.composerError = 'Only image or video files are allowed.';
         continue;
       }
+      if (file.type.startsWith('image/') && this.isSvgFile(file)) {
+        this.composerError = 'SVG images are not supported. Convert the file to PNG or JPEG first.';
+        continue;
+      }
       if (file.type.startsWith('video/') && !this.isSupportedVideo(file)) {
         this.composerError = 'Unsupported video format. Please use MP4, WebM, or Ogg files.';
         continue;
@@ -115,6 +129,7 @@ export class HomeComponent implements OnDestroy, OnInit {
     if (removed) {
       URL.revokeObjectURL(removed.previewUrl);
     }
+    this.composerError = '';
   }
 
   submitPost(): void {
@@ -158,5 +173,14 @@ export class HomeComponent implements OnDestroy, OnInit {
     }
     const extension = file.name?.split('.').pop()?.toLowerCase();
     return !!extension && this.supportedVideoExtensions.has(extension);
+  }
+
+  private isSvgFile(file: File): boolean {
+    const mimeType = file.type?.toLowerCase() ?? '';
+    if (mimeType.includes('svg')) {
+      return true;
+    }
+    const extension = file.name?.split('.').pop()?.toLowerCase();
+    return extension === 'svg';
   }
 }
