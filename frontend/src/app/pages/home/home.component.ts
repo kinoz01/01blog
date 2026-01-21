@@ -34,16 +34,16 @@ export class HomeComponent implements OnDestroy, OnInit {
 
   readonly postForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(120)]],
-    description: ['', [Validators.required, Validators.maxLength(2000)]]
+    description: ['', [Validators.required, Validators.maxLength(6000)]]
   });
   readonly titleMaxLength = 120;
-  readonly descriptionMaxLength = 2000;
+  readonly postMaxLength = 6000;
 
   get titleLength(): number {
     return this.postForm.controls.title.value?.length ?? 0;
   }
 
-  get descriptionLength(): number {
+  get postLength(): number {
     return this.postForm.controls.description.value?.length ?? 0;
   }
 

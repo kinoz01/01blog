@@ -25,7 +25,7 @@ public class PostService {
 
 	private static final int MAX_MEDIA = 10;
 	private static final int MAX_TITLE_LENGTH = 120;
-	private static final int MAX_DESCRIPTION_LENGTH = 2000;
+	private static final int MAX_POST_LENGTH = 6000;
 
 	private final PostRepository postRepository;
 	private final MediaStorageService mediaStorageService;
@@ -53,11 +53,11 @@ public class PostService {
 			throw new BadRequestException("Title must be " + MAX_TITLE_LENGTH + " characters or fewer");
 		}
 		if (!StringUtils.hasText(description)) {
-			throw new BadRequestException("Description is required");
+			throw new BadRequestException("Post content is required");
 		}
 		String normalizedDescription = description.trim();
-		if (normalizedDescription.length() > MAX_DESCRIPTION_LENGTH) {
-			throw new BadRequestException("Description must be " + MAX_DESCRIPTION_LENGTH + " characters or fewer");
+		if (normalizedDescription.length() > MAX_POST_LENGTH) {
+			throw new BadRequestException("Post content must be " + MAX_POST_LENGTH + " characters or fewer");
 		}
 		List<MultipartFile> mediaFiles = files == null ? List.of() : files;
 		if (mediaFiles.size() > MAX_MEDIA) {

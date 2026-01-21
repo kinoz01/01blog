@@ -67,22 +67,21 @@
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label">Description</label>
+        <label class="form-label">Post</label>
         <textarea
           rows="4"
           class="form-control"
           formControlName="description"
           placeholder="What did you learn, fix, or ship?"
-          [attr.maxlength]="descriptionMaxLength"
+          [attr.maxlength]="postMaxLength"
         ></textarea>
         <div class="form-text text-end">
-          {{ descriptionLength }}/{{ descriptionMaxLength }} characters
+          {{ postLength }}/{{ postMaxLength }} characters
         </div>
       </div>
       <div class="mb-3">
         <label class="form-label">Media (optional, up to 10 files)</label>
         <input type="file" class="form-control" multiple (change)="onFilesSelected($event)" />
-        <div class="form-text">Images must be PNG, JPG, GIF, or WebP. SVG files are not supported.</div>
       </div>
       <div class="media-previews" *ngIf="mediaPreviews.length">
         <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
