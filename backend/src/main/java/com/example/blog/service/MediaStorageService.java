@@ -97,4 +97,16 @@ public class MediaStorageService {
 
 	public record StoredMedia(String fileName, String mimeType, String url, String originalFileName) {
 	}
+
+	public void delete(String fileName) {
+		if (!StringUtils.hasText(fileName)) {
+			return;
+		}
+		Path target = storagePath.resolve(fileName);
+		try {
+			Files.deleteIfExists(target);
+		} catch (IOException ex) {
+			throw new MediaStorageException("Failed to delete media file", ex);
+		}
+	}
 }

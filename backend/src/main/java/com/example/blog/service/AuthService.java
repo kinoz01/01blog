@@ -41,6 +41,9 @@ public class AuthService {
 	}
 
 	public AuthResponse register(RegisterRequest request) {
+		if (userRepository.existsByName(request.getName())) {
+			throw new BadRequestException("Name already exists");
+		}
 		if (userRepository.existsByEmail(request.getEmail())) {
 			throw new BadRequestException("Email already exists");
 		}

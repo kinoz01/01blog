@@ -13,6 +13,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/home/home.component').then((m) => m.HomeComponent)
       },
       {
+        path: 'posts/:postId',
+        loadComponent: () => import('./pages/post-detail/post-detail.component').then((m) => m.PostDetailComponent)
+      },
+      {
         path: '',
         pathMatch: 'full',
         redirectTo: 'home'

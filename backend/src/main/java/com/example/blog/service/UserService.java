@@ -45,6 +45,9 @@ public class UserService {
 	}
 
 	public UserResponse createUser(UserRequest request) {
+		if (userRepository.existsByName(request.getName())) {
+			throw new BadRequestException("Name already exists");
+		}
 		if (userRepository.existsByEmail(request.getEmail())) {
 			throw new BadRequestException("Email already exists");
 		}
@@ -70,7 +73,10 @@ public class UserService {
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-		if (request.getName() != null) {
+		if (request.getName() != null && !request.getName().equals(user.getName())) {
+			if (userRepository.existsByName(request.getName())) {
+				throw new BadRequestException("Name already exists");
+			}
 			user.setName(request.getName());
 		}
 		if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {

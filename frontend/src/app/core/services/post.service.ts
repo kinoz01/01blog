@@ -19,6 +19,12 @@ export class PostService {
     );
   }
 
+  getPost(id: string): Observable<Post> {
+    return this.http
+      .get<Post>(`${this.baseUrl}/${id}`, { headers: this.authService.buildAuthHeaders() })
+      .pipe(map((post) => this.normalizeMedia(post)));
+  }
+
   createPost(payload: { title: string; description: string; media: File[] }): Observable<Post> {
     const formData = new FormData();
     formData.append('title', payload.title);
@@ -28,6 +34,32 @@ export class PostService {
     return this.http
       .post<Post>(this.baseUrl, formData, { headers: this.authService.buildAuthHeaders() })
       .pipe(map((post) => this.normalizeMedia(post)));
+  }
+
+  updatePost(
+    id: string,
+    payload: { title: string; description: string; removeMediaIds?: string[]; media?: File[] }
+  ): Observable<Post> {
+    const formData = new FormData();
+    const request = {
+      title: payload.title,
+      description: payload.description,
+      removeMediaIds: payload.removeMediaIds ?? []
+    };
+    formData.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
+    (payload.media ?? []).forEach((file) => formData.append('media', file));
+
+    return this.http
+      .put<Post>(`${this.baseUrl}/${id}`, formData, {
+        headers: this.authService.buildAuthHeaders()
+      })
+      .pipe(map((post) => this.normalizeMedia(post)));
+  }
+
+  deletePost(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, {
+      headers: this.authService.buildAuthHeaders()
+    });
   }
 
   private normalizeMedia(post: Post): Post {

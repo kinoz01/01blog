@@ -11,7 +11,7 @@ import lombok.Data;
 public class RegisterRequest {
 
 	@NotBlank
-	@Size(min = 2, max = 50)
+	@Size(min = 4, max = 25)
 	private String name;
 
 	@NotBlank

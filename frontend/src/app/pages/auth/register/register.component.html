@@ -26,11 +26,12 @@
         class="form-control"
         id="name"
         placeholder="Your name"
+        maxlength="25"
         formControlName="name"
         [class.is-invalid]="fieldInvalid('name')"
       />
-      <label for="name">Full name</label>
-      <div class="invalid-feedback">Tell us what we should call you.</div>
+      <label for="name">Name</label>
+      <div class="invalid-feedback">Provide a name between 4 and 25 characters.</div>
     </div>
 
     <div class="form-floating mb-3">

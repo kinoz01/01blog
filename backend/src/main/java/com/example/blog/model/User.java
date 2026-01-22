@@ -36,8 +36,8 @@ public class User implements UserDetails {
 	private UUID id;
 
 	@NotBlank
-	@Size(min = 2, max = 50)
-	@Column(nullable = false, length = 50)
+	@Size(min = 4, max = 25)
+	@Column(nullable = false, length = 25, unique = true)
 	private String name;
 
 	@NotBlank

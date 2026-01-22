@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class UserUpdateRequest {
 
-	@Size(min = 2, max = 50)
+	@Size(min = 4, max = 25)
 	private String name;
 
 	@Email

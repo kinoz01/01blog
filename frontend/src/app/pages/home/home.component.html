@@ -12,6 +12,7 @@
   </div>
 
   <div *ngIf="loadError" class="alert alert-danger" role="alert">{{ loadError }}</div>
+  <div *ngIf="postActionError" class="alert alert-warning" role="alert">{{ postActionError }}</div>
 
   <div *ngIf="isLoading" class="text-center py-5">
     <div class="spinner-border text-light" role="status"></div>
@@ -25,20 +26,59 @@
   </div>
 
   <div class="post-grid" *ngIf="posts.length > 0">
-    <article class="post-card" *ngFor="let post of posts; trackBy: trackByPost">
+    <article
+      class="post-card"
+      *ngFor="let post of posts; trackBy: trackByPost"
+      tabindex="0"
+      role="button"
+      (click)="openPost(post)"
+      (keydown)="onCardKeyDown($event, post)"
+      [attr.aria-label]="'Open post ' + post.title"
+    >
       <header class="post-header">
         <div>
           <p class="author">{{ post.author.name }}</p>
           <p class="timestamp">{{ post.createdAt | date: 'medium' }}</p>
         </div>
+        <div class="post-menu-wrapper" *ngIf="isOwner(post)">
+          <button
+            type="button"
+            class="post-menu-button"
+            aria-label="Post actions"
+            (click)="toggleMenu(post, $event)"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="menuOpenFor === post.id"
+          >
+            <i class="bi bi-three-dots" aria-hidden="true"></i>
+          </button>
+          <div class="post-menu shadow" *ngIf="menuOpenFor === post.id" role="menu">
+            <button type="button" role="menuitem" (click)="editPost(post, $event)">Edit</button>
+            <button
+              type="button"
+              class="danger"
+              role="menuitem"
+              (click)="deletePost(post, $event)"
+              [disabled]="deleteInProgressId === post.id"
+            >
+              <span *ngIf="deleteInProgressId === post.id" class="spinner-border spinner-border-sm"></span>
+              <span *ngIf="deleteInProgressId !== post.id">Delete</span>
+            </button>
+          </div>
+        </div>
       </header>
       <h3>{{ post.title }}</h3>
-      <p class="description">{{ post.description }}</p>
+      <p class="description">{{ getPreview(post.description) }}</p>
+      <p class="read-more" *ngIf="shouldShowReadMore(post.description)">
+        Continue reading →
+      </p>
       <div class="media-grid" *ngIf="post.media?.length">
-        <ng-container *ngFor="let media of post.media">
+        <ng-container *ngFor="let media of post.media | slice:0:1">
           <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || post.title" />
           <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
         </ng-container>
+        <div class="media-overlay" *ngIf="post.media.length > 1">
+          +{{ post.media.length - 1 }} more attachment(s)
+        </div>
       </div>
     </article>
   </div>
@@ -47,7 +87,7 @@
 <div class="composer-backdrop" *ngIf="composerOpen">
   <div class="composer-dialog" role="dialog" aria-modal="true">
     <header class="composer-header">
-      <h2>Create a post</h2>
+      <h2>{{ isEditing ? 'Edit' : 'Create a post' }}</h2>
       <button type="button" class="composer-close" aria-label="Close" (click)="closeComposer()">
         <i class="bi bi-x-lg" aria-hidden="true"></i>
       </button>
@@ -80,8 +120,47 @@
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label">Media (optional, up to 10 files)</label>
-        <input type="file" class="form-control" multiple (change)="onFilesSelected($event)" />
+        <label class="form-label d-flex justify-content-between align-items-center gap-2">
+          <span>Media (optional, up to {{ maxMedia }} files)</span>
+          <small class="text-white-50">{{ remainingMediaSlots }} slot(s) left</small>
+        </label>
+        <input
+          type="file"
+          class="form-control"
+          multiple
+          (change)="onFilesSelected($event)"
+          [disabled]="hasReachedMediaLimit"
+        />
+        <div class="form-text text-white-50" *ngIf="isEditing">
+          Remove existing attachments below or add new ones here.
+        </div>
+      </div>
+      <div class="existing-media" *ngIf="isEditing && existingMedia.length">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>Existing attachments</strong>
+          <small class="text-white-50" *ngIf="existingMedia.length - activeExistingMediaCount > 0">
+            {{ existingMedia.length - activeExistingMediaCount }} marked for removal
+          </small>
+        </div>
+        <div class="media-previews existing">
+          <div
+            class="preview existing"
+            *ngFor="let media of existingMedia; trackBy: trackByExistingMedia"
+            [class.marked]="media.markedForRemoval"
+          >
+            <button
+              type="button"
+              class="composer-close preview-close"
+              [attr.aria-label]="media.markedForRemoval ? 'Restore attachment' : 'Remove attachment'"
+              (click)="toggleExistingMedia(media)"
+            >
+              <i class="bi" [ngClass]="media.markedForRemoval ? 'bi-arrow-counterclockwise' : 'bi-x-lg'"></i>
+            </button>
+            <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || media.id" />
+            <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
+            <div class="preview-badge" *ngIf="media.markedForRemoval">Will be removed</div>
+          </div>
+        </div>
       </div>
       <div class="media-previews" *ngIf="mediaPreviews.length">
         <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
@@ -96,10 +175,10 @@
       <div class="composer-actions">
         <button type="button" class="btn btn-outline-secondary" (click)="closeComposer()">Cancel</button>
         <button type="submit" class="btn btn-primary" [disabled]="submitting">
-          <span *ngIf="!submitting">Publish</span>
+          <span *ngIf="!submitting">{{ isEditing ? 'Save changes' : 'Publish' }}</span>
           <span *ngIf="submitting" class="d-inline-flex align-items-center gap-2">
             <span class="spinner-border spinner-border-sm"></span>
-            Posting...
+            {{ isEditing ? 'Updating...' : 'Posting...' }}
           </span>
         </button>
       </div>
