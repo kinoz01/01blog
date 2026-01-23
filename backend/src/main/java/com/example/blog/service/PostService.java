@@ -22,7 +22,9 @@ import com.example.blog.model.MediaType;
 import com.example.blog.model.Post;
 import com.example.blog.model.PostMedia;
 import com.example.blog.model.User;
+import com.example.blog.repository.UserRepository;
 import com.example.blog.repository.PostRepository;
+import com.example.blog.repository.UserSubscriptionRepository;
 import com.example.blog.service.MediaStorageService.StoredMedia;
 
 @Service
@@ -34,15 +36,37 @@ public class PostService {
 
 	private final PostRepository postRepository;
 	private final MediaStorageService mediaStorageService;
+	private final UserSubscriptionRepository userSubscriptionRepository;
+	private final NotificationService notificationService;
+	private final UserRepository userRepository;
 
-	public PostService(PostRepository postRepository, MediaStorageService mediaStorageService) {
+	public PostService(PostRepository postRepository, MediaStorageService mediaStorageService,
+			UserSubscriptionRepository userSubscriptionRepository, NotificationService notificationService,
+			UserRepository userRepository) {
 		this.postRepository = postRepository;
 		this.mediaStorageService = mediaStorageService;
+		this.userSubscriptionRepository = userSubscriptionRepository;
+		this.notificationService = notificationService;
+		this.userRepository = userRepository;
 	}
 
 	@Transactional(readOnly = true)
-	public List<PostResponse> getFeed() {
-		return postRepository.findAllByOrderByCreatedAtDesc().stream().map(this::mapToResponse).collect(Collectors.toList());
+	public List<PostResponse> getFeed(User currentUser) {
+		User user = requireAuthenticatedUser(currentUser);
+		List<UUID> subscribedAuthorIds = userSubscriptionRepository.findTargetIdsBySubscriberId(user.getId());
+		if (subscribedAuthorIds == null || subscribedAuthorIds.isEmpty()) {
+			return List.of();
+		}
+		return postRepository.findAllByAuthorIdInOrderByCreatedAtDesc(subscribedAuthorIds).stream()
+				.map(this::mapToResponse)
+				.collect(Collectors.toList());
+	}
+
+	@Transactional(readOnly = true)
+	public List<PostResponse> getPostsByAuthor(UUID authorId) {
+		return postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId).stream()
+				.map(this::mapToResponse)
+				.collect(Collectors.toList());
 	}
 
 	@Transactional(readOnly = true)
@@ -76,6 +100,7 @@ public class PostService {
 			post.addMedia(media);
 		}
 		Post saved = postRepository.save(post);
+		notifySubscribers(owner, saved);
 		return mapToResponse(saved);
 	}
 
@@ -224,6 +249,20 @@ public class PostService {
 	private void ensureOwnership(Post post, User user) {
 		if (!post.getAuthor().getId().equals(user.getId())) {
 			throw new ForbiddenException("You can only modify your own posts");
+		}
+	}
+
+	private void notifySubscribers(User author, Post post) {
+		List<UUID> subscriberIds = userSubscriptionRepository.findSubscriberIdsByTargetId(author.getId());
+		if (subscriberIds == null || subscriberIds.isEmpty()) {
+			return;
+		}
+		List<User> recipients = userRepository.findAllById(subscriberIds);
+		for (User recipient : recipients) {
+			if (recipient.getId().equals(author.getId())) {
+				continue;
+			}
+			notificationService.notifyPostPublished(author, recipient, post.getId());
 		}
 	}
 }

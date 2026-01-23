@@ -1,0 +1,234 @@
+<section class="profile-shell" aria-live="polite">
+  <a routerLink="/home" class="back-link">
+    <i class="bi bi-arrow-left"></i>
+    Back to feed
+  </a>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-light" role="status"></div>
+  </div>
+
+  <div *ngIf="!isLoading && error" class="alert alert-danger" role="alert">
+    {{ error }}
+  </div>
+
+  <ng-container *ngIf="!isLoading && profile as profile">
+    <section class="profile-card shadow-sm rounded-4">
+      <div class="avatar" aria-hidden="true">{{ getInitials(profile.name) }}</div>
+      <div class="profile-info">
+        <p class="eyebrow mb-1">Member profile</p>
+        <h1 class="mb-1">{{ profile.name }}</h1>
+      </div>
+      <div class="profile-stats">
+        <div>
+          <span class="label">Posts</span>
+          <strong>{{ profile.postCount }}</strong>
+        </div>
+        <div>
+          <span class="label">Member since</span>
+          <strong>{{ profile.createdAt | date: 'mediumDate' }}</strong>
+        </div>
+        <div>
+          <span class="label">Last activity</span>
+          <strong>{{ profile.updatedAt | date: 'mediumDate' }}</strong>
+        </div>
+      </div>
+      <div class="profile-actions" *ngIf="!isProfileOwner">
+        <button
+          type="button"
+          class="btn"
+          [ngClass]="profile.subscribed ? 'btn-outline-light' : 'btn-light text-dark fw-semibold'"
+          (click)="toggleSubscription()"
+          [disabled]="subscriptionInProgress"
+        >
+          <span *ngIf="subscriptionInProgress" class="spinner-border spinner-border-sm" role="status"></span>
+          <span *ngIf="!subscriptionInProgress">
+            {{ profile.subscribed ? 'Unsubscribe' : 'Subscribe' }}
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <div *ngIf="subscriptionError" class="alert alert-warning mb-0" role="alert">
+      {{ subscriptionError }}
+    </div>
+
+    <section class="posts-section">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow mb-1">Recent posts</p>
+          <h2 class="mb-0">{{ profile.name }}'s updates</h2>
+          <p class="text-white-50 mb-0" *ngIf="profile.postCount > 0">
+            Showing {{ posts.length }} of {{ profile.postCount }} post(s)
+          </p>
+        </div>
+      </div>
+
+      <div *ngIf="postActionError" class="alert alert-warning" role="alert">
+        {{ postActionError }}
+      </div>
+
+      <div *ngIf="posts.length; else noPosts">
+        <article
+          class="post-card"
+          *ngFor="let post of posts; trackBy: trackByPost"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Open post ' + post.title"
+          (click)="openPost(post, $event)"
+          (keydown)="onPostKeyDown($event, post)"
+        >
+          <header class="post-header">
+            <p class="timestamp">Published {{ post.createdAt | date: 'medium' }}</p>
+            <div class="post-menu-wrapper" *ngIf="isOwner(post)">
+              <button
+                type="button"
+                class="post-menu-button"
+                aria-label="Post actions"
+                (click)="toggleMenu(post, $event)"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="menuOpenFor === post.id"
+              >
+                <i class="bi bi-three-dots" aria-hidden="true"></i>
+              </button>
+              <div class="post-menu shadow" *ngIf="menuOpenFor === post.id" role="menu">
+                <button type="button" role="menuitem" (click)="editPost(post, $event)">Edit</button>
+                <button
+                  type="button"
+                  class="danger"
+                  role="menuitem"
+                  (click)="deletePost(post, $event)"
+                  [disabled]="deleteInProgressId === post.id"
+                >
+                  <span *ngIf="deleteInProgressId === post.id" class="spinner-border spinner-border-sm"></span>
+                  <span *ngIf="deleteInProgressId !== post.id">Delete</span>
+                </button>
+              </div>
+            </div>
+          </header>
+          <h3 class="mb-2">{{ post.title }}</h3>
+          <p class="description">{{ getPreview(post.description) }}</p>
+          <p class="read-more" *ngIf="shouldShowReadMore(post.description)">
+            Continue reading →
+          </p>
+          <div class="media-grid" *ngIf="post.media?.length">
+            <ng-container *ngFor="let media of post.media | slice: 0:1">
+              <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || post.title" />
+              <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
+            </ng-container>
+            <div class="media-overlay" *ngIf="post.media.length > 1">
+              +{{ post.media.length - 1 }} more attachment(s)
+            </div>
+          </div>
+        </article>
+      </div>
+      <ng-template #noPosts>
+        <div class="empty-state text-center text-white-50">
+          <p class="mb-2">{{ profile.name }} hasn't published anything yet.</p>
+        </div>
+      </ng-template>
+    </section>
+  </ng-container>
+</section>
+
+<div class="composer-backdrop" *ngIf="composerOpen">
+  <div class="composer-dialog" role="dialog" aria-modal="true">
+    <header class="composer-header">
+      <h2>{{ isEditing ? 'Edit' : 'Create a post' }}</h2>
+      <button type="button" class="composer-close" aria-label="Close" (click)="closeComposer()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form [formGroup]="postForm" (ngSubmit)="submitPost()" novalidate>
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input
+          type="text"
+          class="form-control"
+          formControlName="title"
+          placeholder="Give your post a name"
+          [attr.maxlength]="titleMaxLength"
+        />
+        <div class="form-text text-end">
+          {{ titleLength }}/{{ titleMaxLength }} characters
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Post</label>
+        <textarea
+          rows="4"
+          class="form-control"
+          formControlName="description"
+          placeholder="What did you learn, fix, or ship?"
+          [attr.maxlength]="postMaxLength"
+        ></textarea>
+        <div class="form-text text-end">
+          {{ postLength }}/{{ postMaxLength }} characters
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label d-flex justify-content-between align-items-center gap-2">
+          <span>Media (optional, up to {{ maxMedia }} files)</span>
+          <small class="text-white-50">{{ remainingMediaSlots }} slot(s) left</small>
+        </label>
+        <input
+          type="file"
+          class="form-control"
+          multiple
+          (change)="onFilesSelected($event)"
+          [disabled]="hasReachedMediaLimit"
+        />
+        <div class="form-text text-white-50" *ngIf="isEditing">
+          Remove existing attachments below or add new ones here.
+        </div>
+      </div>
+      <div class="existing-media" *ngIf="isEditing && existingMedia.length">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>Existing attachments</strong>
+          <small class="text-white-50" *ngIf="existingMedia.length - activeExistingMediaCount > 0">
+            {{ existingMedia.length - activeExistingMediaCount }} marked for removal
+          </small>
+        </div>
+        <div class="media-previews existing">
+          <div
+            class="preview existing"
+            *ngFor="let media of existingMedia; trackBy: trackByExistingMedia"
+            [class.marked]="media.markedForRemoval"
+          >
+            <button
+              type="button"
+              class="composer-close preview-close"
+              [attr.aria-label]="media.markedForRemoval ? 'Restore attachment' : 'Remove attachment'"
+              (click)="toggleExistingMedia(media)"
+            >
+              <i class="bi" [ngClass]="media.markedForRemoval ? 'bi-arrow-counterclockwise' : 'bi-x-lg'"></i>
+            </button>
+            <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || media.id" />
+            <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
+            <div class="preview-badge" *ngIf="media.markedForRemoval">Will be removed</div>
+          </div>
+        </div>
+      </div>
+      <div class="media-previews" *ngIf="mediaPreviews.length">
+        <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
+          <button type="button" class="composer-close preview-close" aria-label="Remove" (click)="removeMedia(i)">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+          <img *ngIf="media.kind === 'image'" [src]="media.previewUrl" alt="Media preview" />
+          <video *ngIf="media.kind === 'video'" [src]="media.previewUrl" controls></video>
+        </div>
+      </div>
+      <div *ngIf="composerError" class="alert alert-danger" role="alert">{{ composerError }}</div>
+      <div class="composer-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeComposer()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting">
+          <span *ngIf="!submitting">{{ isEditing ? 'Save changes' : 'Publish' }}</span>
+          <span *ngIf="submitting" class="d-inline-flex align-items-center gap-2">
+            <span class="spinner-border spinner-border-sm"></span>
+            {{ isEditing ? 'Updating...' : 'Posting...' }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.blog.dto.UserProfileResponse;
 import com.example.blog.dto.UserRequest;
 import com.example.blog.dto.UserResponse;
+import com.example.blog.dto.UserSummaryResponse;
 import com.example.blog.dto.UserUpdateRequest;
 import com.example.blog.model.User;
 import com.example.blog.service.UserService;
@@ -40,6 +42,12 @@ public class UserController {
 		return ResponseEntity.ok(userService.getAllUsers());
 	}
 
+	@GetMapping("/directory")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<List<UserSummaryResponse>> getDirectory() {
+		return ResponseEntity.ok(userService.getDirectory());
+	}
+
 	@GetMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or (isAuthenticated() and #id == principal.id)")
 	public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
@@ -50,6 +58,27 @@ public class UserController {
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
 		return ResponseEntity.ok(userService.createUser(request));
+	}
+
+	@GetMapping("/{id}/profile")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<UserProfileResponse> getPublicProfile(@PathVariable UUID id,
+			@AuthenticationPrincipal User currentUser) {
+		return ResponseEntity.ok(userService.getPublicProfile(id, currentUser));
+	}
+
+	@PostMapping("/{id}/subscribe")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<Void> subscribe(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+		userService.subscribe(currentUser, id);
+		return ResponseEntity.ok().build();
+	}
+
+	@DeleteMapping("/{id}/subscribe")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<Void> unsubscribe(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+		userService.unsubscribe(currentUser, id);
+		return ResponseEntity.noContent().build();
 	}
 
 	@PutMapping("/{id}")

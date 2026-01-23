@@ -15,7 +15,18 @@
   <article *ngIf="!isLoading && post" class="post-detail-card shadow-sm">
     <header class="post-detail-header">
       <div>
-        <p class="author">{{ post.author.name }}</p>
+        <ng-container *ngIf="!isOwner(); else ownerName">
+          <a
+            class="author"
+            [routerLink]="['/users', post.author.id]"
+            [attr.aria-label]="'View profile for ' + post.author.name"
+          >
+            {{ post.author.name }}
+          </a>
+        </ng-container>
+        <ng-template #ownerName>
+          <p class="author owner">{{ post.author.name }}</p>
+        </ng-template>
         <p class="timestamp">Published {{ post.createdAt | date: 'medium' }}</p>
         <p class="timestamp">Updated {{ post.updatedAt | date: 'medium' }}</p>
       </div>

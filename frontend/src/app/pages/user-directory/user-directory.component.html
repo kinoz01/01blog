@@ -1,0 +1,42 @@
+<section class="directory-shell" aria-live="polite">
+  <header class="directory-header">
+    <div>
+      <p class="eyebrow mb-1 text-uppercase">Community</p>
+      <h1 class="mb-0">Meet other learners</h1>
+    </div>
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        class="form-control"
+        #searchBox
+        [value]="search"
+        (input)="onSearch(searchBox.value)"
+        placeholder="Search by name"
+      />
+    </div>
+  </header>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-light" role="status"></div>
+  </div>
+
+  <div *ngIf="!isLoading && error" class="alert alert-danger" role="alert">
+    {{ error }}
+  </div>
+
+  <ng-container *ngIf="hasSearched">
+    <ul class="user-list" *ngIf="!isLoading && !error && filtered.length; else emptyState">
+      <li *ngFor="let user of filtered; trackBy: trackByUser" class="user-card">
+        <strong>{{ user.name }}</strong>
+        <a class="btn btn-outline-light btn-sm rounded-pill" [routerLink]="['/users', user.id]">View profile</a>
+      </li>
+    </ul>
+  </ng-container>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <p class="mb-0 text-white-50">No users match that search.</p>
+    </div>
+  </ng-template>
+</section>

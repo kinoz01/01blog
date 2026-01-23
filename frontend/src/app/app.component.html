@@ -79,6 +79,30 @@
     (click)="closeMenu()"
     >Home</a
   >
+  <a
+    *ngIf="isAuthenticated && currentUserId"
+    [routerLink]="['/users', currentUserId]"
+    routerLinkActive="active-link"
+    class="nav-link"
+    (click)="closeMenu()"
+    >Profile</a
+  >
+  <a
+    *ngIf="isAuthenticated"
+    routerLink="/users"
+    routerLinkActive="active-link"
+    class="nav-link"
+    (click)="closeMenu()"
+    >Users</a
+  >
+  <a
+    *ngIf="isAuthenticated"
+    routerLink="/notifications"
+    routerLinkActive="active-link"
+    class="nav-link"
+    (click)="closeMenu()"
+    >Notifications</a
+  >
   <ng-container *ngIf="!isAuthenticated; else loggedInNav">
     <a routerLink="/login" routerLinkActive="active-link" class="nav-link" (click)="closeMenu()">Login</a>
     <a

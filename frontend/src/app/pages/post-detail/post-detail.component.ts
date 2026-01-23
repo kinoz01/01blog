@@ -5,6 +5,7 @@ import { Subject, of, switchMap, takeUntil, catchError } from 'rxjs';
 
 import { Post } from '../../core/models/post.models';
 import { PostService } from '../../core/services/post.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-post-detail',
@@ -17,12 +18,18 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   post: Post | null = null;
   isLoading = true;
   error = '';
+  private currentUserId: string | null = null;
 
   private readonly route = inject(ActivatedRoute);
   private readonly postService = inject(PostService);
+  private readonly authService = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
+    this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
+      this.currentUserId = user?.id ?? null;
+    });
+
     this.route.paramMap
       .pipe(
         takeUntil(this.destroy$),
@@ -56,5 +63,9 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  isOwner(): boolean {
+    return !!this.post && !!this.currentUserId && this.post.author.id === this.currentUserId;
   }
 }

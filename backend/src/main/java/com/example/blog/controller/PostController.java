@@ -37,8 +37,8 @@ public class PostController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<List<PostResponse>> getFeed() {
-		return ResponseEntity.ok(postService.getFeed());
+	public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal User currentUser) {
+		return ResponseEntity.ok(postService.getFeed(currentUser));
 	}
 
 	@GetMapping("/{postId}")

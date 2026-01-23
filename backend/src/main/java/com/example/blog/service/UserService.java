@@ -9,32 +9,52 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.example.blog.dto.PostResponse;
+import com.example.blog.dto.UserProfileResponse;
 import com.example.blog.dto.UserRequest;
 import com.example.blog.dto.UserResponse;
 import com.example.blog.dto.UserUpdateRequest;
+import com.example.blog.dto.UserSummaryResponse;
 import com.example.blog.exception.BadRequestException;
 import com.example.blog.exception.ForbiddenException;
 import com.example.blog.exception.ResourceNotFoundException;
 import com.example.blog.exception.UnauthorizedException;
 import com.example.blog.model.Role;
 import com.example.blog.model.User;
+import com.example.blog.model.UserSubscription;
 import com.example.blog.repository.UserRepository;
+import com.example.blog.repository.UserSubscriptionRepository;
 
 @Service
 public class UserService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final PostService postService;
+	private final UserSubscriptionRepository userSubscriptionRepository;
 
 	@Autowired
-	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, PostService postService,
+			UserSubscriptionRepository userSubscriptionRepository) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.postService = postService;
+		this.userSubscriptionRepository = userSubscriptionRepository;
 	}
 
 	public List<UserResponse> getAllUsers() {
 		return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+	}
+
+	public List<UserSummaryResponse> getDirectory() {
+		return userRepository.findAll().stream().map(user -> {
+			UserSummaryResponse summary = new UserSummaryResponse();
+			summary.setId(user.getId());
+			summary.setName(user.getName());
+			return summary;
+		}).collect(Collectors.toList());
 	}
 
 	@PostAuthorize("hasRole('ADMIN') or (returnObject != null && returnObject.email == authentication.name)")
@@ -44,8 +64,52 @@ public class UserService {
 		return mapToResponse(user);
 	}
 
+	public UserProfileResponse getPublicProfile(UUID id, User currentUser) {
+		User user = userRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+		List<PostResponse> posts = postService.getPostsByAuthor(id);
+		UserProfileResponse profile = new UserProfileResponse();
+		profile.setId(user.getId());
+		profile.setName(user.getName());
+		profile.setRole(user.getRole());
+		profile.setCreatedAt(user.getCreatedAt());
+		profile.setUpdatedAt(user.getUpdatedAt());
+		profile.setPostCount(posts.size());
+		profile.setPosts(posts);
+		boolean subscribed = currentUser != null && !currentUser.getId().equals(id)
+				&& userSubscriptionRepository.existsBySubscriberIdAndTargetId(currentUser.getId(), id);
+		profile.setSubscribed(subscribed);
+		return profile;
+	}
+
+	@Transactional
+	public void subscribe(User subscriber, UUID targetId) {
+		User actor = requireAuthenticatedUser(subscriber);
+		if (actor.getId().equals(targetId)) {
+			throw new BadRequestException("You cannot subscribe to yourself");
+		}
+		User target = userRepository.findById(targetId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + targetId));
+		if (userSubscriptionRepository.existsBySubscriberIdAndTargetId(actor.getId(), targetId)) {
+			return;
+		}
+		UserSubscription subscription = new UserSubscription();
+		subscription.setSubscriber(actor);
+		subscription.setTarget(target);
+		userSubscriptionRepository.save(subscription);
+	}
+
+	@Transactional
+	public void unsubscribe(User subscriber, UUID targetId) {
+		User actor = requireAuthenticatedUser(subscriber);
+		if (actor.getId().equals(targetId)) {
+			return;
+		}
+		userSubscriptionRepository.deleteBySubscriberIdAndTargetId(actor.getId(), targetId);
+	}
+
 	public UserResponse createUser(UserRequest request) {
-		if (userRepository.existsByName(request.getName())) {
+		if (userRepository.existsByNameIgnoreCase(request.getName())) {
 			throw new BadRequestException("Name already exists");
 		}
 		if (userRepository.existsByEmail(request.getEmail())) {
@@ -74,7 +138,7 @@ public class UserService {
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
 		if (request.getName() != null && !request.getName().equals(user.getName())) {
-			if (userRepository.existsByName(request.getName())) {
+			if (userRepository.existsByNameIgnoreCase(request.getName())) {
 				throw new BadRequestException("Name already exists");
 			}
 			user.setName(request.getName());
@@ -115,5 +179,12 @@ public class UserService {
 		response.setCreatedAt(user.getCreatedAt());
 		response.setUpdatedAt(user.getUpdatedAt());
 		return response;
+	}
+
+	private User requireAuthenticatedUser(User user) {
+		if (user == null) {
+			throw new UnauthorizedException("Authentication required");
+		}
+		return user;
 	}
 }

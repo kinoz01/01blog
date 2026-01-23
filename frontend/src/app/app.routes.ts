@@ -17,6 +17,20 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/post-detail/post-detail.component').then((m) => m.PostDetailComponent)
       },
       {
+        path: 'users',
+        loadComponent: () => import('./pages/user-directory/user-directory.component').then((m) => m.UserDirectoryComponent)
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./pages/notifications/notifications.component').then((m) => m.NotificationsComponent)
+      },
+      {
+        path: 'users/:userId',
+        loadComponent: () =>
+          import('./pages/user-profile/user-profile.component').then((m) => m.UserProfileComponent)
+      },
+      {
         path: '',
         pathMatch: 'full',
         redirectTo: 'home'

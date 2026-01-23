@@ -11,4 +11,6 @@ import com.example.blog.model.Post;
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
 	List<Post> findAllByOrderByCreatedAtDesc();
+	List<Post> findAllByAuthorIdOrderByCreatedAtDesc(UUID authorId);
+	List<Post> findAllByAuthorIdInOrderByCreatedAtDesc(Iterable<UUID> authorIds);
 }

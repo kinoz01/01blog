@@ -18,11 +18,15 @@ export class AppComponent {
   isAuthRoute = true;
   isAuthenticated = false;
   isMenuOpen = false;
+  currentUserId: string | null = null;
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
   constructor() {
     this.authService.isAuthenticated$.subscribe((status) => (this.isAuthenticated = status));
+    this.authService.user$.subscribe((user) => {
+      this.currentUserId = user?.id ?? null;
+    });
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => this.updateLayout());

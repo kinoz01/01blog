@@ -1,4 +1,4 @@
 #NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Sun Jan 18 17:48:04 WEST 2026
-@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1768754884008
+#Fri Jan 23 17:00:14 WEST 2026
+@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1769184014517
 https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.springframework.boot\:spring-boot-starter-parent\:pom\:3.5.7 from/to central (https\://repo.maven.apache.org/maven2)\: repo.maven.apache.org\: Temporary failure in name resolution

@@ -1,28 +1,26 @@
 <section class="feed-shell" aria-live="polite">
-  <div class="feed-hero shadow-sm rounded-4">
+  <div class="feed-hero shadow-sm rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between">
     <div>
-      <p class="eyebrow">Your feed</p>
-      <h1>Keep your cohort in the loop.</h1>
-      <p>
-        Share progress, sketches, or demos with a quick update. When your classmates publish something new, it will
-        surface here.
+      <p class="eyebrow text-uppercase mb-1">Your feed</p>
+      <h1 class="mb-2">Keep your cohort in the loop.</h1>
+      <p class="mb-0 text-white-50">
+        Share what you shipped or learned this week. When someone you follow posts, it will show up below.
       </p>
     </div>
-    <button class="btn btn-primary btn-lg" type="button" (click)="openComposer()">New post</button>
+    <button class="btn btn-primary btn-lg mt-3 mt-md-0" type="button" (click)="openComposer()" [disabled]="!currentUserId">
+      Add post
+    </button>
   </div>
-
   <div *ngIf="loadError" class="alert alert-danger" role="alert">{{ loadError }}</div>
-  <div *ngIf="postActionError" class="alert alert-warning" role="alert">{{ postActionError }}</div>
 
   <div *ngIf="isLoading" class="text-center py-5">
     <div class="spinner-border text-light" role="status"></div>
   </div>
 
   <div *ngIf="!isLoading && posts.length === 0" class="empty-state">
-    <p class="eyebrow">Nothing yet</p>
-    <h2>Be the first to publish.</h2>
-    <p class="text-white-50">Draft a quick note, attach a few screenshots, and hit publish.</p>
-    <button class="btn btn-outline-light" type="button" (click)="openComposer()">Start writing</button>
+    <p class="eyebrow">All caught up</p>
+    <h2>No new updates from your cohort.</h2>
+    <p class="text-white-50">When someone you follow posts an update, it will appear here.</p>
   </div>
 
   <div class="post-grid" *ngIf="posts.length > 0">
@@ -37,33 +35,15 @@
     >
       <header class="post-header">
         <div>
-          <p class="author">{{ post.author.name }}</p>
-          <p class="timestamp">{{ post.createdAt | date: 'medium' }}</p>
-        </div>
-        <div class="post-menu-wrapper" *ngIf="isOwner(post)">
           <button
             type="button"
-            class="post-menu-button"
-            aria-label="Post actions"
-            (click)="toggleMenu(post, $event)"
-            aria-haspopup="menu"
-            [attr.aria-expanded]="menuOpenFor === post.id"
+            class="author"
+            (click)="openProfile(post.author.id, $event)"
+            [attr.aria-label]="'View profile for ' + post.author.name"
           >
-            <i class="bi bi-three-dots" aria-hidden="true"></i>
+            {{ post.author.name }}
           </button>
-          <div class="post-menu shadow" *ngIf="menuOpenFor === post.id" role="menu">
-            <button type="button" role="menuitem" (click)="editPost(post, $event)">Edit</button>
-            <button
-              type="button"
-              class="danger"
-              role="menuitem"
-              (click)="deletePost(post, $event)"
-              [disabled]="deleteInProgressId === post.id"
-            >
-              <span *ngIf="deleteInProgressId === post.id" class="spinner-border spinner-border-sm"></span>
-              <span *ngIf="deleteInProgressId !== post.id">Delete</span>
-            </button>
-          </div>
+          <p class="timestamp">{{ post.createdAt | date: 'medium' }}</p>
         </div>
       </header>
       <h3>{{ post.title }}</h3>
@@ -87,7 +67,7 @@
 <div class="composer-backdrop" *ngIf="composerOpen">
   <div class="composer-dialog" role="dialog" aria-modal="true">
     <header class="composer-header">
-      <h2>{{ isEditing ? 'Edit' : 'Create a post' }}</h2>
+      <h2>Create a post</h2>
       <button type="button" class="composer-close" aria-label="Close" (click)="closeComposer()">
         <i class="bi bi-x-lg" aria-hidden="true"></i>
       </button>
@@ -124,46 +104,10 @@
           <span>Media (optional, up to {{ maxMedia }} files)</span>
           <small class="text-white-50">{{ remainingMediaSlots }} slot(s) left</small>
         </label>
-        <input
-          type="file"
-          class="form-control"
-          multiple
-          (change)="onFilesSelected($event)"
-          [disabled]="hasReachedMediaLimit"
-        />
-        <div class="form-text text-white-50" *ngIf="isEditing">
-          Remove existing attachments below or add new ones here.
-        </div>
-      </div>
-      <div class="existing-media" *ngIf="isEditing && existingMedia.length">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <strong>Existing attachments</strong>
-          <small class="text-white-50" *ngIf="existingMedia.length - activeExistingMediaCount > 0">
-            {{ existingMedia.length - activeExistingMediaCount }} marked for removal
-          </small>
-        </div>
-        <div class="media-previews existing">
-          <div
-            class="preview existing"
-            *ngFor="let media of existingMedia; trackBy: trackByExistingMedia"
-            [class.marked]="media.markedForRemoval"
-          >
-            <button
-              type="button"
-              class="composer-close preview-close"
-              [attr.aria-label]="media.markedForRemoval ? 'Restore attachment' : 'Remove attachment'"
-              (click)="toggleExistingMedia(media)"
-            >
-              <i class="bi" [ngClass]="media.markedForRemoval ? 'bi-arrow-counterclockwise' : 'bi-x-lg'"></i>
-            </button>
-            <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || media.id" />
-            <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
-            <div class="preview-badge" *ngIf="media.markedForRemoval">Will be removed</div>
-          </div>
-        </div>
+        <input type="file" class="form-control" multiple (change)="onFilesSelected($event)" [disabled]="hasReachedMediaLimit" />
       </div>
       <div class="media-previews" *ngIf="mediaPreviews.length">
-        <div class="preview" *ngFor="let media of mediaPreviews; let i = index; trackBy: trackByMedia">
+        <div class="preview" *ngFor="let media of mediaPreviews; let i = index">
           <button type="button" class="composer-close preview-close" aria-label="Remove" (click)="removeMedia(i)">
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
@@ -175,10 +119,10 @@
       <div class="composer-actions">
         <button type="button" class="btn btn-outline-secondary" (click)="closeComposer()">Cancel</button>
         <button type="submit" class="btn btn-primary" [disabled]="submitting">
-          <span *ngIf="!submitting">{{ isEditing ? 'Save changes' : 'Publish' }}</span>
+          <span *ngIf="!submitting">Publish</span>
           <span *ngIf="submitting" class="d-inline-flex align-items-center gap-2">
             <span class="spinner-border spinner-border-sm"></span>
-            {{ isEditing ? 'Updating...' : 'Posting...' }}
+            Posting...
           </span>
         </button>
       </div>
