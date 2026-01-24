@@ -11,6 +11,15 @@ export interface PostMedia {
 export interface AuthorSummary {
   id: string;
   name: string;
+  role: 'USER' | 'ADMIN';
+}
+
+export interface PostComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  author: AuthorSummary;
 }
 
 export interface Post {
@@ -21,4 +30,9 @@ export interface Post {
   updatedAt: string;
   author: AuthorSummary;
   media: PostMedia[];
+  likeCount: number;
+  commentCount: number;
+  likedByCurrentUser: boolean;
+  comments?: PostComment[];
+  hidden: boolean;
 }

@@ -9,6 +9,7 @@ import { UserProfileDetails } from '../../core/models/user.models';
 import { UserService } from '../../core/services/user.service';
 import { PostService } from '../../core/services/post.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ReportService } from '../../core/services/report.service';
 
 interface MediaPreview {
   file: File;
@@ -40,13 +41,18 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   menuOpenFor: string | null = null;
   deleteInProgressId: string | null = null;
   currentUserId: string | null = null;
+  currentUserRole: 'USER' | 'ADMIN' | null = null;
   mediaPreviews: MediaPreview[] = [];
   existingMedia: EditableMedia[] = [];
   subscriptionInProgress = false;
   subscriptionError = '';
+  reportModalOpen = false;
+  reportSubmitting = false;
+  reportError = '';
   readonly maxMedia = 10;
   readonly titleMaxLength = 120;
   readonly postMaxLength = 6000;
+  readonly reportReasonMax = 1000;
   private readonly previewLength = 240;
 
   private readonly route = inject(ActivatedRoute);
@@ -54,6 +60,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   private readonly userService = inject(UserService);
   private readonly postService = inject(PostService);
   private readonly authService = inject(AuthService);
+  private readonly reportService = inject(ReportService);
   private readonly fb = inject(FormBuilder);
   private readonly destroy$ = new Subject<void>();
   private readonly supportedVideoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/ogg']);
@@ -64,9 +71,14 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     description: ['', [Validators.required, Validators.maxLength(this.postMaxLength)]]
   });
 
+  readonly reportForm = this.fb.nonNullable.group({
+    reason: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(this.reportReasonMax)]]
+  });
+
   ngOnInit(): void {
     this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserId = user?.id ?? null;
+      this.currentUserRole = user?.role ?? null;
     });
 
     this.route.paramMap
@@ -109,6 +121,15 @@ export class UserProfileComponent implements OnDestroy, OnInit {
 
   get isEditing(): boolean {
     return !!this.editingPost;
+  }
+
+  get canReportProfile(): boolean {
+    return (
+      !!this.profile &&
+      !this.isProfileOwner &&
+      this.profile.role !== 'ADMIN' &&
+      this.currentUserRole !== 'ADMIN'
+    );
   }
 
   get activeExistingMediaCount(): number {
@@ -188,6 +209,49 @@ export class UserProfileComponent implements OnDestroy, OnInit {
         this.subscriptionInProgress = false;
       }
     });
+  }
+
+  openReportModal(): void {
+    if (!this.profile || this.isProfileOwner) {
+      return;
+    }
+    this.reportForm.reset();
+    this.reportModalOpen = true;
+    this.reportError = '';
+  }
+
+  closeReportModal(): void {
+    this.reportModalOpen = false;
+    this.reportError = '';
+    this.reportSubmitting = false;
+    this.reportForm.reset();
+  }
+
+  submitReport(): void {
+    if (!this.profile) {
+      return;
+    }
+    if (this.reportForm.invalid) {
+      this.reportForm.markAllAsTouched();
+      return;
+    }
+    this.reportSubmitting = true;
+    this.reportError = '';
+    const reason = this.reportForm.controls.reason.value ?? '';
+    this.reportService.reportUser(this.profile.id, reason).subscribe({
+      next: () => {
+        this.reportSubmitting = false;
+        this.closeReportModal();
+      },
+      error: () => {
+        this.reportError = 'Unable to submit your report right now.';
+        this.reportSubmitting = false;
+      }
+    });
+  }
+
+  get reportReasonLength(): number {
+    return this.reportForm.controls.reason.value?.length ?? 0;
   }
 
   openComposer(post?: Post): void {

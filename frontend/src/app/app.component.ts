@@ -19,6 +19,7 @@ export class AppComponent {
   isAuthenticated = false;
   isMenuOpen = false;
   currentUserId: string | null = null;
+  isAdmin = false;
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
@@ -26,6 +27,7 @@ export class AppComponent {
     this.authService.isAuthenticated$.subscribe((status) => (this.isAuthenticated = status));
     this.authService.user$.subscribe((user) => {
       this.currentUserId = user?.id ?? null;
+      this.isAdmin = user?.role === 'ADMIN';
     });
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))

@@ -59,6 +59,9 @@ public class User implements UserDetails {
 
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
+	
+	@Column(name = "banned", nullable = false)
+	private boolean banned = false;
 
 	@PrePersist
 	public void prePersist() {
@@ -104,6 +107,6 @@ public class User implements UserDetails {
 
 	@Override
 	public boolean isEnabled() {
-		return true;
+		return !banned;
 	}
 }

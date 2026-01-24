@@ -13,4 +13,5 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 	List<Post> findAllByOrderByCreatedAtDesc();
 	List<Post> findAllByAuthorIdOrderByCreatedAtDesc(UUID authorId);
 	List<Post> findAllByAuthorIdInOrderByCreatedAtDesc(Iterable<UUID> authorIds);
+	long countByAuthorId(UUID authorId);
 }

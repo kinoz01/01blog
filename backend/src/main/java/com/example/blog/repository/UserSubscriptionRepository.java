@@ -15,6 +15,10 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
 	boolean existsBySubscriberIdAndTargetId(UUID subscriberId, UUID targetId);
 
 	void deleteBySubscriberIdAndTargetId(UUID subscriberId, UUID targetId);
+	
+	void deleteBySubscriberId(UUID subscriberId);
+	
+	void deleteByTargetId(UUID targetId);
 
 	@Query("select s.subscriber.id from UserSubscription s where s.target.id = :targetId")
 	List<UUID> findSubscriberIdsByTargetId(UUID targetId);

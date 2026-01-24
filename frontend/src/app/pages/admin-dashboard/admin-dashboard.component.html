@@ -1,0 +1,240 @@
+<section class="admin-shell" aria-live="polite">
+  <header class="admin-header">
+    <div>
+      <p class="eyebrow mb-1 text-white-50">Moderation center</p>
+      <h1 class="mb-0">Reported content & accounts</h1>
+    </div>
+  </header>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-light" role="status"></div>
+  </div>
+
+  <div *ngIf="!isLoading && error" class="alert alert-danger" role="alert">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!isLoading && !error && reports.length === 0" class="empty-state text-center text-white-50">
+    <p class="mb-0">All caught up — no reports need attention.</p>
+  </div>
+
+  <div class="report-list" *ngIf="reports.length">
+    <article class="report-card" *ngFor="let report of reports">
+      <header class="report-card__header">
+        <span
+          class="badge rounded-pill"
+          [ngClass]="report.status === 'OPEN' ? 'text-bg-warning text-dark' : 'text-bg-success'"
+        >
+          {{ report.status }}
+        </span>
+        <small class="text-white-50">{{ report.createdAt | date: 'medium' }}</small>
+      </header>
+
+      <p class="text-white-50 text-uppercase small mb-1">{{ report.targetType === 'USER' ? 'Profile report' : 'Post report' }}</p>
+      <p class="reason">{{ report.reason }}</p>
+
+      <div class="report-meta">
+        <div>
+          <span class="label">Reporter</span>
+          <strong>{{ report.reporter.name }}</strong>
+          <small>{{ report.reporter.email }}</small>
+        </div>
+        <div *ngIf="report.reportedUser">
+          <span class="label">Reported user</span>
+          <strong>
+            <a [routerLink]="['/users', report.reportedUser.id]" class="link-light text-decoration-none">
+              {{ report.reportedUser.name }}
+            </a>
+          </strong>
+          <small>{{ report.reportedUser.email }}</small>
+          <span class="status-pill" [class.bg-danger]="report.reportedUser.banned">
+            {{ report.reportedUser.banned ? 'Banned' : 'Active' }}
+          </span>
+        </div>
+        <div *ngIf="report.reportedPost">
+          <span class="label">Reported post</span>
+          <strong>
+            <a [routerLink]="['/posts', report.reportedPost.id]" class="link-light text-decoration-none">
+              {{ report.reportedPost.title }}
+            </a>
+          </strong>
+          <small>Author: {{ report.reportedPost.authorName }}</small>
+          <span class="status-pill bg-warning text-dark" *ngIf="report.reportedPost.hidden">Hidden</span>
+        </div>
+      </div>
+
+      <div class="report-actions">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-light"
+          (click)="resolve(report)"
+          [disabled]="isActionPending('resolve-' + report.id)"
+        >
+          <span *ngIf="!isActionPending('resolve-' + report.id)">Mark resolved</span>
+          <span *ngIf="isActionPending('resolve-' + report.id)">Working...</span>
+        </button>
+
+        <ng-container *ngIf="report.reportedUser">
+          <button
+            type="button"
+            class="btn btn-sm btn-warning text-dark"
+            (click)="banUser(report)"
+            *ngIf="!report.reportedUser.banned"
+            [disabled]="isActionPending('ban-' + report.reportedUser.id)"
+          >
+            Ban user
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-light"
+            (click)="unbanUser(report)"
+            *ngIf="report.reportedUser.banned"
+            [disabled]="isActionPending('unban-' + report.reportedUser.id)"
+          >
+            Unban user
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-danger"
+            (click)="removeUser(report)"
+            [disabled]="isActionPending('remove-' + report.reportedUser.id)"
+          >
+            Remove user
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="report.reportedPost">
+          <button
+            type="button"
+            class="btn btn-sm btn-warning text-dark"
+            (click)="hidePost(report)"
+            *ngIf="!report.reportedPost.hidden"
+            [disabled]="isActionPending('hide-' + report.reportedPost.id)"
+          >
+            Hide post
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-light"
+            (click)="unhidePost(report)"
+            *ngIf="report.reportedPost.hidden"
+            [disabled]="isActionPending('unhide-' + report.reportedPost.id)"
+          >
+            Unhide post
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-danger"
+            (click)="deletePost(report)"
+            [disabled]="isActionPending('delete-' + report.reportedPost.id)"
+          >
+            Delete post
+          </button>
+        </ng-container>
+      </div>
+    </article>
+  </div>
+
+  <section class="management-section">
+    <header class="section-head">
+      <div>
+        <p class="eyebrow mb-1 text-white-50">User controls</p>
+        <h2 class="mb-0">Accounts</h2>
+      </div>
+    </header>
+    <div *ngIf="users.length; else noUsers" class="entity-list">
+      <article class="entity-card" *ngFor="let user of users">
+        <div class="entity-details">
+          <div>
+            <h3 class="mb-1">
+              {{ user.name }}
+              <span class="badge text-bg-light text-dark ms-2" *ngIf="user.role === 'ADMIN'">Admin</span>
+            </h3>
+            <p class="mb-1 text-white-50">{{ user.email }}</p>
+            <small class="text-white-50">
+              Joined {{ user.createdAt | date: 'mediumDate' }} · {{ user.postCount }} post(s)
+            </small>
+          </div>
+          <span class="status-pill" [class.bg-danger]="user.banned">
+            {{ user.banned ? 'Banned' : 'Active' }}
+          </span>
+        </div>
+        <div class="entity-actions">
+          <button
+            type="button"
+            class="menu-trigger"
+            (click)="toggleMenu('user', user.id, $event)"
+            [attr.aria-expanded]="menuContext?.type === 'user' && menuContext?.id === user.id"
+          >
+            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+          </button>
+          <div
+            class="menu-panel"
+            *ngIf="menuContext?.type === 'user' && menuContext?.id === user.id"
+            (click)="onMenuContentClick($event)"
+          >
+            <button type="button" (click)="toggleUserBan(user)" [disabled]="isActionPending((user.banned ? 'unban-' : 'ban-') + user.id)">
+              {{ user.banned ? 'Unban user' : 'Ban user' }}
+            </button>
+            <button type="button" class="danger" (click)="removeUserById(user.id)" [disabled]="isActionPending('remove-' + user.id)">
+              Remove user
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+    <ng-template #noUsers>
+      <p class="text-white-50">No users found.</p>
+    </ng-template>
+  </section>
+
+  <section class="management-section">
+    <header class="section-head">
+      <div>
+        <p class="eyebrow mb-1 text-white-50">Post controls</p>
+        <h2 class="mb-0">Posts</h2>
+      </div>
+    </header>
+    <div *ngIf="posts.length; else noPosts" class="entity-list">
+      <article class="entity-card" *ngFor="let post of posts">
+        <div class="entity-details">
+          <div>
+            <h3 class="mb-1">{{ post.title }}</h3>
+            <p class="mb-1 text-white-50">By {{ post.author.name }} • {{ post.createdAt | date: 'medium' }}</p>
+            <small class="text-white-50">{{ post.likeCount }} likes · {{ post.commentCount }} comments</small>
+          </div>
+          <span class="status-pill bg-warning text-dark" *ngIf="post.hidden">Hidden</span>
+        </div>
+        <div class="entity-actions">
+          <button
+            type="button"
+            class="menu-trigger"
+            (click)="toggleMenu('post', post.id, $event)"
+            [attr.aria-expanded]="menuContext?.type === 'post' && menuContext?.id === post.id"
+          >
+            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+          </button>
+          <div
+            class="menu-panel"
+            *ngIf="menuContext?.type === 'post' && menuContext?.id === post.id"
+            (click)="onMenuContentClick($event)"
+          >
+            <button
+              type="button"
+              (click)="togglePostVisibility(post)"
+              [disabled]="isActionPending((post.hidden ? 'unhide-' : 'hide-') + post.id)"
+            >
+              {{ post.hidden ? 'Unhide post' : 'Hide post' }}
+            </button>
+            <button type="button" class="danger" (click)="deletePostById(post.id)" [disabled]="isActionPending('delete-' + post.id)">
+              Delete post
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+    <ng-template #noPosts>
+      <p class="text-white-50">No posts found.</p>
+    </ng-template>
+  </section>
+</section>

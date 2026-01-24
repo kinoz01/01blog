@@ -58,6 +58,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			try {
 				UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
+				if (!userDetails.isEnabled()) {
+					writeErrorResponse(response, request, "Account is disabled");
+					return;
+				}
 				if (email.equals(userDetails.getUsername()) && !jwtService.isTokenExpired(jwt)) {
 					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
 							null, userDetails.getAuthorities());

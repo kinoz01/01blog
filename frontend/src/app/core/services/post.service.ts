@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Post } from '../models/post.models';
+import { Post, PostComment } from '../models/post.models';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -15,14 +15,14 @@ export class PostService {
 
   getFeed(): Observable<Post[]> {
     return this.http.get<Post[]>(this.baseUrl, { headers: this.authService.buildAuthHeaders() }).pipe(
-      map((posts) => posts.map((post) => this.normalizeMedia(post)))
+      map((posts) => posts.map((post) => this.normalizePost(post)))
     );
   }
 
   getPost(id: string): Observable<Post> {
     return this.http
       .get<Post>(`${this.baseUrl}/${id}`, { headers: this.authService.buildAuthHeaders() })
-      .pipe(map((post) => this.normalizeMedia(post)));
+      .pipe(map((post) => this.normalizePost(post)));
   }
 
   createPost(payload: { title: string; description: string; media: File[] }): Observable<Post> {
@@ -33,7 +33,7 @@ export class PostService {
 
     return this.http
       .post<Post>(this.baseUrl, formData, { headers: this.authService.buildAuthHeaders() })
-      .pipe(map((post) => this.normalizeMedia(post)));
+      .pipe(map((post) => this.normalizePost(post)));
   }
 
   updatePost(
@@ -53,7 +53,7 @@ export class PostService {
       .put<Post>(`${this.baseUrl}/${id}`, formData, {
         headers: this.authService.buildAuthHeaders()
       })
-      .pipe(map((post) => this.normalizeMedia(post)));
+      .pipe(map((post) => this.normalizePost(post)));
   }
 
   deletePost(id: string): Observable<void> {
@@ -62,14 +62,32 @@ export class PostService {
     });
   }
 
-  private normalizeMedia(post: Post): Post {
-    if (!post.media?.length) {
-      return post;
-    }
-    const media = post.media.map((item) => ({
+  likePost(id: string): Observable<Post> {
+    return this.http
+      .post<Post>(`${this.baseUrl}/${id}/likes`, {}, { headers: this.authService.buildAuthHeaders() })
+      .pipe(map((post) => this.normalizePost(post)));
+  }
+
+  unlikePost(id: string): Observable<Post> {
+    return this.http
+      .delete<Post>(`${this.baseUrl}/${id}/likes`, { headers: this.authService.buildAuthHeaders() })
+      .pipe(map((post) => this.normalizePost(post)));
+  }
+
+  addComment(postId: string, content: string): Observable<PostComment> {
+    return this.http.post<PostComment>(
+      `${this.baseUrl}/${postId}/comments`,
+      { content },
+      { headers: this.authService.buildAuthHeaders() }
+    );
+  }
+
+  private normalizePost(post: Post): Post {
+    const media = (post.media ?? []).map((item) => ({
       ...item,
-      url: item.url.startsWith('http') ? item.url : `${this.apiOrigin}${item.url}`
+      url: item.url?.startsWith('http') ? item.url : `${this.apiOrigin}${item.url}`
     }));
-    return { ...post, media };
+    const comments = post.comments ? [...post.comments] : undefined;
+    return { ...post, media, comments };
   }
 }

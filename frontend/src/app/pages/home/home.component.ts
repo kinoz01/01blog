@@ -38,6 +38,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   private readonly destroy$ = new Subject<void>();
   private readonly supportedVideoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/ogg']);
   private readonly supportedVideoExtensions = new Set(['mp4', 'webm', 'ogg']);
+  private readonly likesInProgress = new Set<string>();
 
   private readonly postService = inject(PostService);
   private readonly authService = inject(AuthService);
@@ -82,6 +83,10 @@ export class HomeComponent implements OnDestroy, OnInit {
     return this.remainingMediaSlots <= 0;
   }
 
+  isLikePending(postId: string): boolean {
+    return this.likesInProgress.has(postId);
+  }
+
   loadPosts(): void {
     this.isLoading = true;
     this.loadError = '';
@@ -116,6 +121,25 @@ export class HomeComponent implements OnDestroy, OnInit {
       event.preventDefault();
       this.openPost(post);
     }
+  }
+
+  toggleLike(post: Post, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!post?.id || this.likesInProgress.has(post.id)) {
+      return;
+    }
+    this.likesInProgress.add(post.id);
+    const request$ = post.likedByCurrentUser ? this.postService.unlikePost(post.id) : this.postService.likePost(post.id);
+    request$.subscribe({
+      next: (updatedPost) => {
+        this.likesInProgress.delete(post.id);
+        this.applyPostUpdate(updatedPost);
+      },
+      error: () => {
+        this.likesInProgress.delete(post.id);
+      }
+    });
   }
 
   getPreview(description: string): string {
@@ -222,6 +246,11 @@ export class HomeComponent implements OnDestroy, OnInit {
       return;
     }
     this.posts = this.allPosts.filter((post) => post.author.id !== this.currentUserId);
+  }
+
+  private applyPostUpdate(updatedPost: Post): void {
+    this.allPosts = this.allPosts.map((post) => (post.id === updatedPost.id ? updatedPost : post));
+    this.applyOwnerFilter();
   }
 
   private resetMediaPreviews(): void {

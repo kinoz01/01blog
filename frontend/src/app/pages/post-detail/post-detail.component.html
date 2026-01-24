@@ -35,11 +35,124 @@
     <h1>{{ post.title }}</h1>
     <p class="body-text">{{ post.description }}</p>
 
+    <div class="post-meta">
+      <button
+        type="button"
+        class="like-button"
+        (click)="toggleLike()"
+        [disabled]="likeInProgress"
+        [attr.aria-pressed]="post.likedByCurrentUser"
+        [attr.aria-label]="post.likedByCurrentUser ? 'Remove like from this post' : 'Like this post'"
+      >
+        <i class="bi" [ngClass]="post.likedByCurrentUser ? 'bi-heart-fill' : 'bi-heart'"></i>
+        <span>{{ post.likeCount }}</span>
+      </button>
+      <div class="stat">
+        <i class="bi bi-chat-dots"></i>
+        <span>{{ post.commentCount }} comment(s)</span>
+      </div>
+    </div>
+
+    <div class="alert alert-warning text-dark" *ngIf="post.hidden">
+      This post is hidden and only visible to you and administrators.
+    </div>
+
+    <div class="post-actions" *ngIf="canReportPost()">
+      <button type="button" class="btn btn-outline-warning text-white" (click)="openReportModal()">
+        Report this post
+      </button>
+    </div>
+
     <div class="media-grid" *ngIf="post.media?.length">
       <ng-container *ngFor="let media of post.media">
         <img *ngIf="media.type === 'IMAGE'" [src]="media.url" [alt]="media.originalFileName || post.title" />
         <video *ngIf="media.type === 'VIDEO'" [src]="media.url" controls></video>
       </ng-container>
     </div>
+
+    <section class="comments-section" aria-labelledby="comments-heading">
+      <div class="comments-header">
+        <h2 id="comments-heading" class="mb-0">Comments</h2>
+        <span class="count">{{ post.commentCount }} total</span>
+      </div>
+      <div *ngIf="commentError" class="alert alert-warning" role="alert">
+        {{ commentError }}
+      </div>
+      <form class="comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()">
+        <label class="form-label" for="comment-content">Add a comment</label>
+        <textarea
+          id="comment-content"
+          class="form-control"
+          rows="3"
+          formControlName="content"
+          [attr.maxlength]="commentMaxLength"
+          placeholder="Share your takeaways or feedback"
+        ></textarea>
+        <div class="form-text text-end text-white-50">
+          {{ commentLength }}/{{ commentMaxLength }} characters
+        </div>
+        <div class="comment-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="commentSubmitting">
+            <span *ngIf="!commentSubmitting">Post comment</span>
+            <span *ngIf="commentSubmitting" class="d-inline-flex align-items-center gap-2">
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              Sending...
+            </span>
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="post.comments?.length; else noComments" class="comment-list">
+        <article class="comment" *ngFor="let comment of post.comments">
+          <header>
+            <div>
+              <strong>{{ comment.author.name }}</strong>
+              <span class="timestamp">{{ comment.createdAt | date: 'medium' }}</span>
+            </div>
+          </header>
+          <p>{{ comment.content }}</p>
+        </article>
+      </div>
+      <ng-template #noComments>
+        <p class="text-white-50 mb-0">No comments yet. Be the first to share your thoughts.</p>
+      </ng-template>
+    </section>
   </article>
 </section>
+
+<div class="report-backdrop" *ngIf="reportModalOpen">
+  <div class="report-dialog" role="dialog" aria-modal="true">
+    <header class="report-header">
+      <h2>Report post</h2>
+      <button type="button" class="report-close" aria-label="Close report form" (click)="closeReportModal()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form [formGroup]="reportForm" (ngSubmit)="submitReport()" novalidate>
+      <div class="mb-3">
+        <label class="form-label">Reason</label>
+        <textarea
+          rows="4"
+          class="form-control"
+          formControlName="reason"
+          [attr.maxlength]="reportMaxLength"
+          placeholder="Describe why this post should be reviewed"
+        ></textarea>
+        <div class="form-text text-end text-white-50">
+          {{ reportReasonLength }}/{{ reportMaxLength }} characters
+        </div>
+      </div>
+      <div *ngIf="reportError" class="alert alert-danger" role="alert">{{ reportError }}</div>
+      <div class="report-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeReportModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="reportSubmitting">
+          <span *ngIf="!reportSubmitting">Submit report</span>
+          <span *ngIf="reportSubmitting" class="d-inline-flex align-items-center gap-2">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            Sending...
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

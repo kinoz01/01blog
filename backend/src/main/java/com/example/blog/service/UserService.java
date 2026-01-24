@@ -67,14 +67,14 @@ public class UserService {
 	public UserProfileResponse getPublicProfile(UUID id, User currentUser) {
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-		List<PostResponse> posts = postService.getPostsByAuthor(id);
+		List<PostResponse> posts = postService.getPostsByAuthor(id, currentUser);
 		UserProfileResponse profile = new UserProfileResponse();
 		profile.setId(user.getId());
 		profile.setName(user.getName());
 		profile.setRole(user.getRole());
 		profile.setCreatedAt(user.getCreatedAt());
 		profile.setUpdatedAt(user.getUpdatedAt());
-		profile.setPostCount(posts.size());
+		profile.setPostCount(postService.countPostsByAuthor(id));
 		profile.setPosts(posts);
 		boolean subscribed = currentUser != null && !currentUser.getId().equals(id)
 				&& userSubscriptionRepository.existsBySubscriberIdAndTargetId(currentUser.getId(), id);
@@ -184,6 +184,9 @@ public class UserService {
 	private User requireAuthenticatedUser(User user) {
 		if (user == null) {
 			throw new UnauthorizedException("Authentication required");
+		}
+		if (user.isBanned()) {
+			throw new ForbiddenException("Your account is restricted");
 		}
 		return user;
 	}

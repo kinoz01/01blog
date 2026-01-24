@@ -103,6 +103,14 @@
     (click)="closeMenu()"
     >Notifications</a
   >
+  <a
+    *ngIf="isAuthenticated && isAdmin"
+    routerLink="/admin"
+    routerLinkActive="active-link"
+    class="nav-link"
+    (click)="closeMenu()"
+    >Admin</a
+  >
   <ng-container *ngIf="!isAuthenticated; else loggedInNav">
     <a routerLink="/login" routerLinkActive="active-link" class="nav-link" (click)="closeMenu()">Login</a>
     <a

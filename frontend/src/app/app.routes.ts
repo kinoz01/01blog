@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -29,6 +30,12 @@ export const routes: Routes = [
         path: 'users/:userId',
         loadComponent: () =>
           import('./pages/user-profile/user-profile.component').then((m) => m.UserProfileComponent)
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/admin-dashboard/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
       },
       {
         path: '',

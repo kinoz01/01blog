@@ -46,6 +46,14 @@
             {{ profile.subscribed ? 'Unsubscribe' : 'Subscribe' }}
           </span>
         </button>
+        <button
+          type="button"
+          class="btn btn-outline-warning text-white fw-semibold"
+          (click)="openReportModal()"
+          *ngIf="canReportProfile"
+        >
+          Report profile
+        </button>
       </div>
     </section>
 
@@ -106,6 +114,9 @@
               </div>
             </div>
           </header>
+          <p class="text-warning small fw-semibold mb-2" *ngIf="post.hidden">
+            Hidden • visible only to you and admins
+          </p>
           <h3 class="mb-2">{{ post.title }}</h3>
           <p class="description">{{ getPreview(post.description) }}</p>
           <p class="read-more" *ngIf="shouldShowReadMore(post.description)">
@@ -120,6 +131,16 @@
               +{{ post.media.length - 1 }} more attachment(s)
             </div>
           </div>
+          <div class="post-metrics">
+            <div class="metric" aria-label="Total likes on this post">
+              <i class="bi bi-heart"></i>
+              <span class="count">{{ post.likeCount }}</span>
+            </div>
+            <div class="metric" aria-label="Total comments on this post">
+              <i class="bi bi-chat-dots"></i>
+              <span class="count">{{ post.commentCount }}</span>
+            </div>
+          </div>
         </article>
       </div>
       <ng-template #noPosts>
@@ -130,6 +151,43 @@
     </section>
   </ng-container>
 </section>
+
+<div class="composer-backdrop" *ngIf="reportModalOpen">
+  <div class="composer-dialog" role="dialog" aria-modal="true">
+    <header class="composer-header">
+      <h2>Report profile</h2>
+      <button type="button" class="composer-close" aria-label="Close report form" (click)="closeReportModal()">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form [formGroup]="reportForm" (ngSubmit)="submitReport()" novalidate>
+      <div class="mb-3">
+        <label class="form-label">Reason</label>
+        <textarea
+          rows="4"
+          class="form-control"
+          formControlName="reason"
+          placeholder="Describe why this profile should be reviewed"
+          [attr.maxlength]="reportReasonMax"
+        ></textarea>
+        <div class="form-text text-end text-white-50">
+          {{ reportReasonLength }}/{{ reportReasonMax }} characters
+        </div>
+      </div>
+      <div *ngIf="reportError" class="alert alert-danger" role="alert">{{ reportError }}</div>
+      <div class="composer-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeReportModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="reportSubmitting">
+          <span *ngIf="!reportSubmitting">Submit report</span>
+          <span *ngIf="reportSubmitting" class="d-inline-flex align-items-center gap-2">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            Sending...
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div class="composer-backdrop" *ngIf="composerOpen">
   <div class="composer-dialog" role="dialog" aria-modal="true">

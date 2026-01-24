@@ -16,12 +16,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.blog.dto.ReportRequest;
 import com.example.blog.dto.UserProfileResponse;
 import com.example.blog.dto.UserRequest;
 import com.example.blog.dto.UserResponse;
 import com.example.blog.dto.UserSummaryResponse;
 import com.example.blog.dto.UserUpdateRequest;
 import com.example.blog.model.User;
+import com.example.blog.service.ReportService;
 import com.example.blog.service.UserService;
 
 import jakarta.validation.Valid;
@@ -31,9 +33,11 @@ import jakarta.validation.Valid;
 public class UserController {
 
 	private final UserService userService;
+	private final ReportService reportService;
 
-	public UserController(UserService userService) {
+	public UserController(UserService userService, ReportService reportService) {
 		this.userService = userService;
+		this.reportService = reportService;
 	}
 
 	@GetMapping
@@ -100,5 +104,13 @@ public class UserController {
 	public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
 		userService.deleteUser(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/{id}/report")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<Void> reportUser(@PathVariable UUID id, @Valid @RequestBody ReportRequest request,
+			@AuthenticationPrincipal User currentUser) {
+		reportService.reportUser(id, request, currentUser);
+		return ResponseEntity.accepted().build();
 	}
 }
