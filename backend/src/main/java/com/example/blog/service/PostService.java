@@ -155,6 +155,8 @@ public class PostService {
 		User owner = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
 		ensureOwnership(post, owner);
+		postLikeRepository.deleteByPostId(post.getId());
+		postCommentRepository.deleteByPostId(post.getId());
 		post.getMedia().forEach(media -> mediaStorageService.delete(media.getFileName()));
 		postRepository.delete(post);
 	}

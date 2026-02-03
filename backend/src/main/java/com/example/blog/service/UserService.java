@@ -163,7 +163,14 @@ public class UserService {
 		return mapToResponse(updated);
 	}
 
-	public void deleteUser(UUID id) {
+	public void deleteUser(UUID id, User requester) {
+		User actor = requireAuthenticatedUser(requester);
+		if (actor.getRole() != Role.ADMIN) {
+			throw new ForbiddenException("Only administrators can delete users");
+		}
+		if (actor.getId().equals(id)) {
+			throw new BadRequestException("Administrators cannot delete their own account");
+		}
 		if (!userRepository.existsById(id)) {
 			throw new ResourceNotFoundException("User not found with id: " + id);
 		}

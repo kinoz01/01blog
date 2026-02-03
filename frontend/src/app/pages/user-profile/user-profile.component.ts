@@ -54,6 +54,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   readonly postMaxLength = 6000;
   readonly reportReasonMax = 1000;
   private readonly previewLength = 240;
+  private readonly likesInProgress = new Set<string>();
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -159,6 +160,27 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     }
   }
 
+  toggleLike(post: Post, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!post?.id || this.likesInProgress.has(post.id)) {
+      return;
+    }
+    this.likesInProgress.add(post.id);
+    const request$ = post.likedByCurrentUser
+      ? this.postService.unlikePost(post.id)
+      : this.postService.likePost(post.id);
+    request$.subscribe({
+      next: (updatedPost) => {
+        this.likesInProgress.delete(post.id);
+        this.applyPostUpdate(updatedPost);
+      },
+      error: () => {
+        this.likesInProgress.delete(post.id);
+      }
+    });
+  }
+
   trackByPost(_index: number, post: Post): string {
     return post.id;
   }
@@ -169,6 +191,10 @@ export class UserProfileComponent implements OnDestroy, OnInit {
 
   trackByMedia(_index: number, media: MediaPreview): string {
     return media.previewUrl;
+  }
+
+  isLikePending(postId: string): boolean {
+    return this.likesInProgress.has(postId);
   }
 
   getPreview(description: string): string {
@@ -473,10 +499,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     const mediaFiles = this.mediaPreviews.map((preview) => preview.file);
     this.postService.updatePost(post.id, { title, description, removeMediaIds, media: mediaFiles }).subscribe({
       next: (updated) => {
-        this.posts = this.posts.map((item) => (item.id === updated.id ? updated : item));
-        if (this.profile) {
-          this.profile = { ...this.profile, posts: this.posts };
-        }
+        this.applyPostUpdate(updated);
         this.submitting = false;
         this.closeComposer();
       },
@@ -511,5 +534,19 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     }
     const extension = file.name?.split('.').pop()?.toLowerCase();
     return extension === 'svg';
+  }
+
+  private applyPostUpdate(updatedPost: Post): void {
+    let didUpdate = false;
+    this.posts = this.posts.map((item) => {
+      if (item.id === updatedPost.id) {
+        didUpdate = true;
+        return updatedPost;
+      }
+      return item;
+    });
+    if (didUpdate && this.profile) {
+      this.profile = { ...this.profile, posts: this.posts };
+    }
   }
 }

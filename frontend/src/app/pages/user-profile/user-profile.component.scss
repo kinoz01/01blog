@@ -178,6 +178,47 @@
     gap: 1rem;
   }
 
+  .like-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.35rem 0.85rem;
+    background: rgba(15, 23, 42, 0.8);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+
+    i {
+      font-size: 1rem;
+    }
+
+    .count {
+      font-weight: 600;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(99, 102, 241, 0.8);
+      background: rgba(99, 102, 241, 0.2);
+      transform: translateY(-1px);
+    }
+
+    &[aria-pressed='true'] {
+      background: rgba(244, 114, 182, 0.2);
+      border-color: rgba(244, 114, 182, 0.7);
+      color: #f472b6;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
   .metric {
     display: inline-flex;
     align-items: center;

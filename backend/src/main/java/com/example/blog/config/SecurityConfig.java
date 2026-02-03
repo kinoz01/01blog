@@ -2,7 +2,6 @@ package com.example.blog.config;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,13 +25,15 @@ import com.example.blog.security.JwtAuthenticationFilter;
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig {
 
+	private static final List<String> FRONTEND_ORIGINS = List.of("http://localhost:4200");
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	private final RateLimitingFilter rateLimitingFilter;
+	private final List<String> allowedOrigins;
 
-	@Autowired // CONSTRUCTOR INJECTION
 	public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitingFilter rateLimitingFilter) {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 		this.rateLimitingFilter = rateLimitingFilter;
+		this.allowedOrigins = FRONTEND_ORIGINS;
 	}
 
 	@Bean
@@ -63,7 +64,7 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("*"));
+		configuration.setAllowedOrigins(allowedOrigins);
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setExposedHeaders(List.of("Authorization"));

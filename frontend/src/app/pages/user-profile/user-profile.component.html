@@ -132,10 +132,17 @@
             </div>
           </div>
           <div class="post-metrics">
-            <div class="metric" aria-label="Total likes on this post">
-              <i class="bi bi-heart"></i>
+            <button
+              type="button"
+              class="like-button"
+              (click)="toggleLike(post, $event)"
+              [disabled]="isLikePending(post.id)"
+              [attr.aria-pressed]="post.likedByCurrentUser"
+              [attr.aria-label]="post.likedByCurrentUser ? 'Remove like' : 'Like post'"
+            >
+              <i class="bi" [ngClass]="post.likedByCurrentUser ? 'bi-heart-fill' : 'bi-heart'"></i>
               <span class="count">{{ post.likeCount }}</span>
-            </div>
+            </button>
             <div class="metric" aria-label="Total comments on this post">
               <i class="bi bi-chat-dots"></i>
               <span class="count">{{ post.commentCount }}</span>

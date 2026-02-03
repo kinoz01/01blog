@@ -159,7 +159,7 @@
             {{ user.banned ? 'Banned' : 'Active' }}
           </span>
         </div>
-        <div class="entity-actions">
+        <div class="entity-actions" *ngIf="user.role !== 'ADMIN'">
           <button
             type="button"
             class="menu-trigger"
