@@ -21,8 +21,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-	private static final int CAPACITY = 100;
-	private static final long REFILL_WINDOW_MS = 60_000;
+	private static final int CAPACITY = 10;
+	private static final long REFILL_WINDOW_MS = 1_000;
 
 	private final Map<String, SimpleBucket> cache = new ConcurrentHashMap<>();
 	@Autowired
