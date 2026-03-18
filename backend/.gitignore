@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 keystore.p12
+.env
 .env.local
 
 ### STS ###

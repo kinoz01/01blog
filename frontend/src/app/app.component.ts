@@ -13,7 +13,7 @@ import { AuthService } from './core/services/auth.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  readonly title = 'Blog';
+  readonly title = 'Maaref';
   readonly currentYear = new Date().getFullYear();
   isAuthRoute = true;
   isAuthenticated = false;

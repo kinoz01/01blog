@@ -15,9 +15,11 @@ frontend-install:
 run-db:
 	@cd $(BACKEND_DIR) && \
 	if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then \
-		COMPOSE_CMD="docker compose"; \
+		COMPOSE_LABEL="docker compose"; \
+		COMPOSE_CMD=(docker compose); \
 	elif command -v docker-compose >/dev/null 2>&1; then \
-		COMPOSE_CMD="docker-compose"; \
+		COMPOSE_LABEL="PYTHONNOUSERSITE=1 docker-compose"; \
+		COMPOSE_CMD=(env PYTHONNOUSERSITE=1 docker-compose); \
 	else \
 		echo "Docker Compose is required to start PostgreSQL."; \
 		exit 1; \
@@ -28,21 +30,23 @@ run-db:
 			docker rm -f "$$CONTAINER_NAME" >/dev/null 2>&1 || true; \
 		fi; \
 	done; \
-	$$COMPOSE_CMD -f docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true; \
-	echo "Starting PostgreSQL via $$COMPOSE_CMD ..."; \
-	$$COMPOSE_CMD -f docker-compose.yml up -d postgres >/dev/null
+	"$${COMPOSE_CMD[@]}" -f docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true; \
+	echo "Starting PostgreSQL via $$COMPOSE_LABEL ..."; \
+	"$${COMPOSE_CMD[@]}" -f docker-compose.yml up -d postgres >/dev/null
 
 stop-db:
 	@cd $(BACKEND_DIR) && \
 	if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then \
-		COMPOSE_CMD="docker compose"; \
+		COMPOSE_LABEL="docker compose"; \
+		COMPOSE_CMD=(docker compose); \
 	elif command -v docker-compose >/dev/null 2>&1; then \
-		COMPOSE_CMD="docker-compose"; \
+		COMPOSE_LABEL="PYTHONNOUSERSITE=1 docker-compose"; \
+		COMPOSE_CMD=(env PYTHONNOUSERSITE=1 docker-compose); \
 	else \
 		exit 0; \
 	fi; \
 	echo "Stopping PostgreSQL container..."; \
-	$$COMPOSE_CMD -f docker-compose.yml down >/dev/null 2>&1 || true
+	"$${COMPOSE_CMD[@]}" -f docker-compose.yml down >/dev/null 2>&1 || true
 
 run-backend: backend-install run-db
 	@cd $(BACKEND_DIR) && ./mvnw spring-boot:run

@@ -7,7 +7,7 @@ import { AuthResponse, AuthState, LoginPayload, RegisterPayload, UserProfile } f
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly storageKey = 'blog-auth';
+  private readonly storageKey = 'maaref-auth';
   private readonly authUrl = `${environment.apiUrl}/auth`;
 
   private readonly stateSubject = new BehaviorSubject<AuthState | null>(null);
