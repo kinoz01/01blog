@@ -82,6 +82,12 @@ export class PostService {
     );
   }
 
+  deleteComment(postId: string, commentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${postId}/comments/${commentId}`, {
+      headers: this.authService.buildAuthHeaders()
+    });
+  }
+
   private normalizePost(post: Post): Post {
     const media = (post.media ?? []).map((item) => ({
       ...item,

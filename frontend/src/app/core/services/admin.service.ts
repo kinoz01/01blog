@@ -32,14 +32,6 @@ export class AdminService {
     });
   }
 
-  resolveReport(reportId: string): Observable<ReportSummary> {
-    return this.http.post<ReportSummary>(
-      `${this.baseUrl}/reports/${reportId}/resolve`,
-      {},
-      { headers: this.authService.buildAuthHeaders() }
-    );
-  }
-
   banUser(userId: string): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/users/${userId}/ban`, {}, { headers: this.authService.buildAuthHeaders() });
   }

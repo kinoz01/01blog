@@ -99,6 +99,14 @@ public class PostController {
 		return ResponseEntity.ok(postService.addComment(postId, request.getContent(), currentUser));
 	}
 
+	@DeleteMapping("/{postId}/comments/{commentId}")
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<Void> deleteComment(@PathVariable UUID postId, @PathVariable UUID commentId,
+			@AuthenticationPrincipal User currentUser) {
+		postService.deleteComment(postId, commentId, currentUser);
+		return ResponseEntity.noContent().build();
+	}
+
 	@PostMapping("/{postId}/report")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<Void> reportPost(@PathVariable UUID postId, @Valid @RequestBody ReportRequest request,

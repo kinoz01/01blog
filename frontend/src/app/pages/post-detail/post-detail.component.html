@@ -58,8 +58,14 @@
     </div>
 
     <div class="post-actions" *ngIf="canReportPost()">
-      <button type="button" class="btn btn-outline-warning text-white" (click)="openReportModal()">
-        Report this post
+      <button
+        type="button"
+        class="btn btn-outline-warning text-white"
+        (click)="openReportModal()"
+        [disabled]="hasReportedPost()"
+      >
+        <span *ngIf="!hasReportedPost()">Report this post</span>
+        <span *ngIf="hasReportedPost()">Reported</span>
       </button>
     </div>
 
@@ -109,6 +115,19 @@
               <strong>{{ comment.author.name }}</strong>
               <span class="timestamp">{{ comment.createdAt | date: 'medium' }}</span>
             </div>
+            <button
+              type="button"
+              class="comment-delete"
+              *ngIf="canDeleteComment(comment)"
+              (click)="deleteComment(comment)"
+              [disabled]="isCommentDeletePending(comment.id)"
+              aria-label="Delete comment"
+            >
+              <span *ngIf="!isCommentDeletePending(comment.id)">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+              </span>
+              <span *ngIf="isCommentDeletePending(comment.id)" class="spinner-border spinner-border-sm" role="status"></span>
+            </button>
           </header>
           <p>{{ comment.content }}</p>
         </article>
@@ -136,8 +155,13 @@
           class="form-control"
           formControlName="reason"
           [attr.maxlength]="reportMaxLength"
+          [class.is-invalid]="reportReasonHasError"
           placeholder="Describe why this post should be reviewed"
         ></textarea>
+        <div class="invalid-feedback d-block" *ngIf="reportReasonHasError">
+          <span *ngIf="reportForm.controls.reason.hasError('required')">Reason is required.</span>
+          <span *ngIf="reportForm.controls.reason.hasError('minlength')">Please enter at least 5 characters.</span>
+        </div>
         <div class="form-text text-end text-white-50">
           {{ reportReasonLength }}/{{ reportMaxLength }} characters
         </div>

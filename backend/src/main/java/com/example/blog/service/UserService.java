@@ -27,6 +27,10 @@ import com.example.blog.model.UserSubscription;
 import com.example.blog.repository.UserRepository;
 import com.example.blog.repository.UserSubscriptionRepository;
 
+/**
+ * User management layer for CRUD operations, profile lookups, and subscription
+ * workflows. Handles admin-only operations and general validation.
+ */
 @Service
 public class UserService {
 
@@ -44,10 +48,16 @@ public class UserService {
 		this.userSubscriptionRepository = userSubscriptionRepository;
 	}
 
+	/**
+	 * Returns every user as a detailed DTO. Used primarily by admin APIs.
+	 */
 	public List<UserResponse> getAllUsers() {
 		return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
 	}
 
+	/**
+	 * Lightweight list of users intended for directory/autocomplete views.
+	 */
 	public List<UserSummaryResponse> getDirectory() {
 		return userRepository.findAll().stream().map(user -> {
 			UserSummaryResponse summary = new UserSummaryResponse();
@@ -57,6 +67,10 @@ public class UserService {
 		}).collect(Collectors.toList());
 	}
 
+	/**
+	 * Retrieves a user by id; PostAuthorize ensures only admins or the user
+	 * themselves can view the result.
+	 */
 	@PostAuthorize("hasRole('ADMIN') or (returnObject != null && returnObject.email == authentication.name)")
 	public UserResponse getUserById(UUID id) {
 		User user = userRepository.findById(id)
@@ -64,6 +78,10 @@ public class UserService {
 		return mapToResponse(user);
 	}
 
+	/**
+	 * Builds the public profile view including posts and subscription state
+	 * relative to the current viewer.
+	 */
 	public UserProfileResponse getPublicProfile(UUID id, User currentUser) {
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -82,6 +100,10 @@ public class UserService {
 		return profile;
 	}
 
+	/**
+	 * Subscribes the current user to another author so their posts show in the
+	 * feed.
+	 */
 	@Transactional
 	public void subscribe(User subscriber, UUID targetId) {
 		User actor = requireAuthenticatedUser(subscriber);
@@ -99,6 +121,9 @@ public class UserService {
 		userSubscriptionRepository.save(subscription);
 	}
 
+	/**
+	 * Removes a subscription relationship if it exists.
+	 */
 	@Transactional
 	public void unsubscribe(User subscriber, UUID targetId) {
 		User actor = requireAuthenticatedUser(subscriber);
@@ -108,6 +133,9 @@ public class UserService {
 		userSubscriptionRepository.deleteBySubscriberIdAndTargetId(actor.getId(), targetId);
 	}
 
+	/**
+	 * Admin helper to create accounts manually (validating uniqueness, etc.).
+	 */
 	public UserResponse createUser(UserRequest request) {
 		if (userRepository.existsByNameIgnoreCase(request.getName())) {
 			throw new BadRequestException("Name already exists");
@@ -126,6 +154,9 @@ public class UserService {
 		return mapToResponse(saved);
 	}
 
+	/**
+	 * Updates mutable fields on a user. Only admins may perform this action.
+	 */
 	public UserResponse updateUser(UUID id, UserUpdateRequest request, User requester) {
 		if (requester == null) {
 			throw new UnauthorizedException("Authentication required");
@@ -163,6 +194,9 @@ public class UserService {
 		return mapToResponse(updated);
 	}
 
+	/**
+	 * Deletes a user by id (admin-only) with guardrails preventing self-deletion.
+	 */
 	public void deleteUser(UUID id, User requester) {
 		User actor = requireAuthenticatedUser(requester);
 		if (actor.getRole() != Role.ADMIN) {
@@ -177,6 +211,9 @@ public class UserService {
 		userRepository.deleteById(id);
 	}
 
+	/**
+	 * Converts an entity to the DTO exposed externally.
+	 */
 	private UserResponse mapToResponse(User user) {
 		UserResponse response = new UserResponse();
 		response.setId(user.getId());
@@ -188,6 +225,9 @@ public class UserService {
 		return response;
 	}
 
+	/**
+	 * Ensures the caller is logged in and not banned.
+	 */
 	private User requireAuthenticatedUser(User user) {
 		if (user == null) {
 			throw new UnauthorizedException("Authentication required");

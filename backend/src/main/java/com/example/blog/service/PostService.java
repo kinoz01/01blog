@@ -37,6 +37,11 @@ import com.example.blog.repository.UserSubscriptionRepository;
 import com.example.blog.repository.projection.PostMetric;
 import com.example.blog.service.MediaStorageService.StoredMedia;
 
+/**
+ * Core business logic for creating, updating, viewing, and moderating posts.
+ * Aggregates likes/comments, stores media, sends notifications, and enforces
+ * access control rules.
+ */
 @Service
 public class PostService {
 
@@ -65,6 +70,10 @@ public class PostService {
 		this.userRepository = userRepository;
 	}
 
+	/**
+	 * Returns the chronological feed for the signed-in user by inspecting their
+	 * subscriptions. Empty list when they follow no one.
+	 */
 	@Transactional(readOnly = true)
 	public List<PostResponse> getFeed(User currentUser) {
 		User user = requireAuthenticatedUser(currentUser);
@@ -76,12 +85,19 @@ public class PostService {
 		return mapPosts(posts, user, false);
 	}
 
+	/**
+	 * Lists all posts written by the requested author, filtered by what the
+	 * `currentUser` is allowed to view.
+	 */
 	@Transactional(readOnly = true)
 	public List<PostResponse> getPostsByAuthor(UUID authorId, User currentUser) {
 		List<Post> posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId);
 		return mapPosts(posts, currentUser, false);
 	}
 	
+	/**
+	 * Admin-only endpoint that fetches every post, regardless of visibility.
+	 */
 	@Transactional(readOnly = true)
 	public List<PostResponse> getAllPosts(User currentUser) {
 		User admin = requireAuthenticatedUser(currentUser);
@@ -92,11 +108,18 @@ public class PostService {
 		return mapPosts(posts, admin, false);
 	}
 	
+	/**
+	 * Convenience method used for profile stats showing total posts per user.
+	 */
 	@Transactional(readOnly = true)
 	public long countPostsByAuthor(UUID authorId) {
 		return postRepository.countByAuthorId(authorId);
 	}
 
+	/**
+	 * Fetches a single post by id and verifies the viewer may see it (hidden
+	 * posts are limited to admins or the author).
+	 */
 	@Transactional(readOnly = true)
 	public PostResponse getPost(UUID postId, User currentUser) {
 		Post post = getPostOrThrow(postId);
@@ -107,6 +130,10 @@ public class PostService {
 				.orElseThrow(() -> new ResourceNotFoundException("Post not found"));
 	}
 
+	/**
+	 * Creates a new post with optional media uploads and notifies subscribers of
+	 * the author.
+	 */
 	@Transactional
 	public PostResponse createPost(String title, String description, List<MultipartFile> files, User owner) {
 		requireAuthenticatedUser(owner);
@@ -136,6 +163,10 @@ public class PostService {
 		return mapPosts(List.of(saved), owner, false).get(0);
 	}
 
+	/**
+	 * Updates an existing post's text and attachments. Callers can flag media for
+	 * removal and upload additional files in the same operation.
+	 */
 	@Transactional
 	public PostResponse updatePost(UUID postId, String title, String description, List<UUID> removeMediaIds,
 			List<MultipartFile> newMediaFiles, User currentUser) {
@@ -150,6 +181,9 @@ public class PostService {
 		return mapPosts(List.of(saved), owner, false).get(0);
 	}
 
+	/**
+	 * Completely removes a post and any associated media/engagement data.
+	 */
 	@Transactional
 	public void deletePost(UUID postId, User currentUser) {
 		User owner = requireAuthenticatedUser(currentUser);
@@ -161,6 +195,9 @@ public class PostService {
 		postRepository.delete(post);
 	}
 	
+	/**
+	 * Admin utility to toggle a post's `hidden` flag.
+	 */
 	@Transactional
 	public PostResponse setPostHidden(UUID postId, boolean hidden, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
@@ -173,6 +210,10 @@ public class PostService {
 		return mapPosts(List.of(saved), actor, false).get(0);
 	}
 
+	/**
+	 * Registers a like for the requesting user if they are allowed to interact
+	 * with the post.
+	 */
 	@Transactional
 	public PostResponse likePost(UUID postId, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
@@ -189,6 +230,9 @@ public class PostService {
 		return mapPosts(List.of(post), actor, false).get(0);
 	}
 
+	/**
+	 * Removes a previously registered like.
+	 */
 	@Transactional
 	public PostResponse unlikePost(UUID postId, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
@@ -200,6 +244,9 @@ public class PostService {
 		return mapPosts(List.of(post), actor, false).get(0);
 	}
 
+	/**
+	 * Adds a comment authored by the current user.
+	 */
 	@Transactional
 	public PostCommentResponse addComment(UUID postId, String content, User currentUser) {
 		User author = requireAuthenticatedUser(currentUser);
@@ -216,6 +263,28 @@ public class PostService {
 		return mapComment(saved);
 	}
 
+	/**
+	 * Deletes a comment when requested by its author or an admin.
+	 */
+	@Transactional
+	public void deleteComment(UUID postId, UUID commentId, User currentUser) {
+		User actor = requireAuthenticatedUser(currentUser);
+		PostComment comment = postCommentRepository.findById(commentId)
+				.orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+		if (!comment.getPost().getId().equals(postId)) {
+			throw new ResourceNotFoundException("Comment not found");
+		}
+		boolean isAuthor = comment.getAuthor().getId().equals(actor.getId());
+		if (!isAuthor && !isAdmin(actor)) {
+			throw new ForbiddenException("You cannot delete this comment");
+		}
+		postCommentRepository.delete(comment);
+	}
+
+	/**
+	 * Maps a collection of Post entities into PostResponse DTOs, optionally
+	 * embedding full comment threads.
+	 */
 	private List<PostResponse> mapPosts(List<Post> posts, User currentUser, boolean includeComments) {
 		if (posts == null || posts.isEmpty()) {
 			return List.of();
@@ -249,6 +318,10 @@ public class PostService {
 		}).collect(Collectors.toList());
 	}
 
+	/**
+	 * Converts aggregated metrics (likes/comments) into a simple UUID -> count
+	 * map for faster lookup when assembling responses.
+	 */
 	private Map<UUID, Long> toMetricMap(List<PostMetric> metrics) {
 		Map<UUID, Long> map = new HashMap<>();
 		if (metrics == null) {
@@ -260,6 +333,10 @@ public class PostService {
 		return map;
 	}
 
+	/**
+	 * Loads and groups comments for the provided post ids so they can be attached
+	 * to responses without multiple queries.
+	 */
 	private Map<UUID, List<PostCommentResponse>> mapCommentsByPost(List<UUID> postIds) {
 		if (postIds == null || postIds.isEmpty()) {
 			return Map.of();
@@ -272,6 +349,9 @@ public class PostService {
 		return grouped;
 	}
 
+	/**
+	 * Assembles the final PostResponse DTO from the entity + metrics.
+	 */
 	private PostResponse buildPostResponse(Post post, long likeCount, long commentCount, boolean likedByUser,
 			List<PostCommentResponse> comments) {
 		PostResponse response = new PostResponse();
@@ -303,6 +383,9 @@ public class PostService {
 		return response;
 	}
 
+	/**
+	 * Converts a PostComment entity to its DTO counterpart.
+	 */
 	private PostCommentResponse mapComment(PostComment comment) {
 		PostCommentResponse response = new PostCommentResponse();
 		response.setId(comment.getId());
@@ -316,6 +399,9 @@ public class PostService {
 		return response;
 	}
 
+	/**
+	 * Validates and removes attachments flagged for deletion during an update.
+	 */
 	private void removeMedia(Post post, List<UUID> mediaIdsToRemove) {
 		List<UUID> ids = mediaIdsToRemove == null ? List.of() : mediaIdsToRemove;
 		if (ids.isEmpty()) {
@@ -337,6 +423,9 @@ public class PostService {
 		}
 	}
 
+	/**
+	 * Adds newly uploaded media files to an existing post.
+	 */
 	private void addMedia(Post post, List<MultipartFile> files) {
 		List<MultipartFile> mediaFiles = normalizeFiles(files);
 		if (mediaFiles.isEmpty()) {
@@ -357,6 +446,9 @@ public class PostService {
 		}
 	}
 
+	/**
+	 * Filters null/empty uploads and returns a clean list for processing.
+	 */
 	private List<MultipartFile> normalizeFiles(List<MultipartFile> files) {
 		if (files == null || files.isEmpty()) {
 			return List.of();
@@ -364,6 +456,10 @@ public class PostService {
 		return files.stream().filter(file -> file != null && !file.isEmpty()).collect(Collectors.toList());
 	}
 
+	/**
+	 * Delegates to MediaStorageService to persist files and returns the stored
+	 * metadata for later attachment to PostMedia entities.
+	 */
 	private List<StoredMedia> storeMediaFiles(Collection<MultipartFile> mediaFiles) {
 		List<StoredMedia> storedMedia = new ArrayList<>();
 		if (mediaFiles == null) {
@@ -378,6 +474,10 @@ public class PostService {
 		return storedMedia;
 	}
 
+	/**
+	 * Checks whether the given viewer has permission to see a post (even if
+	 * hidden).
+	 */
 	private boolean canViewPost(Post post, User viewer) {
 		if (post == null) {
 			return false;
@@ -391,10 +491,16 @@ public class PostService {
 		return isAdmin(viewer) || post.getAuthor().getId().equals(viewer.getId());
 	}
 
+	/**
+	 * Utility to check the ADMIN role without repeated null checks.
+	 */
 	private boolean isAdmin(User user) {
 		return user != null && user.getRole() == Role.ADMIN;
 	}
 
+	/**
+	 * Ensures titles are present and within the configured length limits.
+	 */
 	private String normalizeTitle(String rawTitle) {
 		if (!StringUtils.hasText(rawTitle)) {
 			throw new BadRequestException("Title is required");
@@ -406,6 +512,9 @@ public class PostService {
 		return normalizedTitle;
 	}
 
+	/**
+	 * Cleans and validates the post body.
+	 */
 	private String normalizeDescription(String rawDescription) {
 		if (!StringUtils.hasText(rawDescription)) {
 			throw new BadRequestException("Post content is required");
@@ -417,6 +526,9 @@ public class PostService {
 		return normalizedDescription;
 	}
 
+	/**
+	 * Validates text for individual comments.
+	 */
 	private String normalizeComment(String rawComment) {
 		if (!StringUtils.hasText(rawComment)) {
 			throw new BadRequestException("Comment cannot be empty");
@@ -428,6 +540,9 @@ public class PostService {
 		return normalizedComment;
 	}
 
+	/**
+	 * Guards methods that require a logged-in, non-banned user.
+	 */
 	private User requireAuthenticatedUser(User owner) {
 		if (owner == null) {
 			throw new UnauthorizedException("Authentication required");
@@ -438,10 +553,17 @@ public class PostService {
 		return owner;
 	}
 
+	/**
+	 * Loads a post or throws a 404-style exception when missing.
+	 */
 	private Post getPostOrThrow(UUID postId) {
 		return postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post not found"));
 	}
 
+	/**
+	 * Ensures the acting user either owns the post or is an admin; otherwise a
+	 * forbidden error is raised.
+	 */
 	private void ensureOwnership(Post post, User user) {
 		if (isAdmin(user)) {
 			return;
@@ -451,6 +573,9 @@ public class PostService {
 		}
 	}
 
+	/**
+	 * Notifies all subscribers that the author published a new post.
+	 */
 	private void notifySubscribers(User author, Post post) {
 		List<UUID> subscriberIds = userSubscriptionRepository.findSubscriberIdsByTargetId(author.getId());
 		if (subscriberIds == null || subscriberIds.isEmpty()) {

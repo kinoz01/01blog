@@ -5,6 +5,7 @@ import java.time.Instant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -23,6 +24,10 @@ import com.example.blog.model.User;
 import com.example.blog.repository.UserRepository;
 import com.example.blog.security.JwtService;
 
+/**
+ * Handles registration, login, and profile lookups for authenticated users.
+ * Wraps Spring Security primitives and emits DTOs consumed by the REST layer.
+ */
 @Service
 public class AuthService {
 
@@ -40,6 +45,11 @@ public class AuthService {
 		this.authenticationManager = authenticationManager;
 	}
 
+	/**
+	 * Creates a brand-new user account after validating unique name/email, then
+	 * returns a JWT + profile payload so the client can start an authenticated
+	 * session immediately.
+	 */
 	public AuthResponse register(RegisterRequest request) {
 		if (userRepository.existsByNameIgnoreCase(request.getName())) {
 			throw new BadRequestException("Name already exists");
@@ -59,6 +69,12 @@ public class AuthService {
 		return new AuthResponse(token, jwtService.getExpiration(), mapToResponse(saved));
 	}
 
+	/**
+	 * Validates the supplied credentials with the AuthenticationManager and, when
+	 * successful, issues a signed JWT and profile info. Banned users receive a
+	 * dedicated error message so the UI can distinguish between lockouts and bad
+	 * passwords.
+	 */
 	public AuthResponse authenticate(AuthRequest request) {
 		try {
 			Authentication authentication = authenticationManager.authenticate(
@@ -69,11 +85,17 @@ public class AuthService {
 			return new AuthResponse(token, jwtService.getExpiration(), mapToResponse(user));
 		} catch (BadCredentialsException ex) {
 			throw new UnauthorizedException("Invalid credentials");
+		} catch (DisabledException ex) {
+			throw new UnauthorizedException("Your account is banned. Contact support if you believe this is an error.");
 		} catch (AuthenticationException ex) {
 			throw new UnauthorizedException("Invalid credentials");
 		}
 	}
 
+	/**
+	 * Convenience helper used by `/auth/me` to turn the Spring Security principal
+	 * into a serialisable `UserResponse`.
+	 */
 	public UserResponse getCurrentUserProfile() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
@@ -83,6 +105,10 @@ public class AuthService {
 		return mapToResponse(user);
 	}
 
+	/**
+	 * Converts the internal `User` entity into the slimmer DTO returned to
+	 * callers. Centralised here so every response is consistent.
+	 */
 	private UserResponse mapToResponse(User user) {
 		UserResponse response = new UserResponse();
 		response.setId(user.getId());

@@ -251,6 +251,31 @@
     .timestamp {
       color: rgba(248, 250, 252, 0.6);
       font-size: 0.85rem;
+      margin-left: 0.4rem;
+    }
+  }
+
+  .comment-delete {
+    border: none;
+    background: transparent;
+    color: rgba(248, 250, 252, 0.8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(248, 113, 113, 0.15);
+      color: #fca5a5;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 

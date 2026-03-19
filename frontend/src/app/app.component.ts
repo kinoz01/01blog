@@ -37,7 +37,7 @@ export class AppComponent {
 
   private updateLayout(): void {
     const currentUrl = this.router.url.split('?')[0];
-    this.isAuthRoute = currentUrl === '/login' || currentUrl === '/register' || currentUrl === '/';
+    this.isAuthRoute = currentUrl === '/login' || currentUrl === '/register';
     this.isMenuOpen = false;
   }
 

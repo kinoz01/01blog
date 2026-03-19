@@ -17,19 +17,26 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// Extends OncePerRequestFilter to ensure a single execution per request
+/**
+ * Servlet filter that enforces a per-IP token bucket so abusive clients receive
+ * HTTP 429 responses instead of overwhelming the API.
+ */
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-	private static final int CAPACITY = 10;
+	private static final int CAPACITY = 100;
 	private static final long REFILL_WINDOW_MS = 1_000;
 
 	private final Map<String, SimpleBucket> cache = new ConcurrentHashMap<>();
 	@Autowired
     private ObjectMapper objectMapper;
 
-	// Extends OncePerRequestFilter's doFilterInternal method that will be called in OncePerRequestFilter's doFilter() method
-	// Tomcat → doFilter(...) (from OncePerRequestFilter) → our doFilterInternal(...)
+	/**
+	 * Entry point for each HTTP request. We grab the caller's IP address, fetch a
+	 * token bucket for that IP (creating one if needed), and only allow the request
+	 * to proceed down the filter chain when a token is available. Otherwise, we send
+	 * back a 429 response with a JSON payload describing the error.
+	 */
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain nextFilter)
 			throws ServletException, IOException {
@@ -47,21 +54,35 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 		}
 	}
 
+	/**
+	 * Builds a new bucket with the global capacity/refill settings. Called lazily
+	 * whenever we see a new IP address.
+	 */
 	private SimpleBucket createBucket(String key) {
 		return new SimpleBucket(CAPACITY, REFILL_WINDOW_MS);
 	}
 
+	/**
+	 * Skip rate limiting for CORS preflight calls so browsers can negotiate
+	 * headers without being throttled.
+	 */
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
 		return "OPTIONS".equalsIgnoreCase(request.getMethod());
 	}
 
+	/**
+	 * Very small, thread-safe token bucket implementation used per client IP.
+	 */
 	private static final class SimpleBucket {
 		private final int capacity;
 		private final long refillWindowMs;
 		private double tokens;
 		private long lastRefill;
 
+		/**
+		 * Buckets start full so the first burst of requests is accepted immediately.
+		 */
 		private SimpleBucket(int capacity, long refillWindowMs) {
 			this.capacity = capacity;
 			this.refillWindowMs = refillWindowMs;
@@ -69,6 +90,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 			this.lastRefill = System.currentTimeMillis();
 		}
 
+		/**
+		 * Refill tokens based on elapsed time and, if enough are available, consume
+		 * the requested amount atomically.
+		 */
 		private synchronized boolean tryConsume(int amount) {
 			refill();
 			if (tokens >= amount) {
@@ -78,6 +103,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 			return false;
 		}
 
+		/**
+		 * Computes how many tokens should be added since the last refill tick and
+		 * caps the bucket at its configured capacity.
+		 */
 		private void refill() {
 			long now = System.currentTimeMillis();
 			long elapsed = now - lastRefill;

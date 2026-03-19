@@ -15,6 +15,10 @@ import com.example.blog.model.Notification;
 import com.example.blog.model.User;
 import com.example.blog.repository.NotificationRepository;
 
+/**
+ * Stores and manages user-to-user notifications (currently "post published"
+ * events). Provides helpers for delivery, listing, marking as read, and delete.
+ */
 @Service
 public class NotificationService {
 
@@ -24,6 +28,10 @@ public class NotificationService {
 		this.notificationRepository = notificationRepository;
 	}
 
+	/**
+	 * Persists a notification informing `recipient` that `actor` published a new
+	 * post. Self-notifications are ignored.
+	 */
 	@Transactional
 	public void notifyPostPublished(User actor, User recipient, UUID postId) {
 		if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {
@@ -37,6 +45,9 @@ public class NotificationService {
 		notificationRepository.save(notification);
 	}
 
+	/**
+	 * Returns all notifications for the given user, newest first.
+	 */
 	@Transactional(readOnly = true)
 	public List<NotificationResponse> getNotifications(User user) {
 		return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(user.getId()).stream()
@@ -44,6 +55,9 @@ public class NotificationService {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * Marks a single notification as read, enforcing ownership.
+	 */
 	@Transactional
 	public void markAsRead(User user, UUID notificationId) {
 		Notification notification = notificationRepository.findById(notificationId)
@@ -57,6 +71,9 @@ public class NotificationService {
 		}
 	}
 
+	/**
+	 * Hard-deletes a notification the current user owns.
+	 */
 	@Transactional
 	public void delete(User user, UUID notificationId) {
 		Notification notification = notificationRepository.findById(notificationId)
@@ -67,6 +84,9 @@ public class NotificationService {
 		notificationRepository.delete(notification);
 	}
 
+	/**
+	 * Converts the entity into the DTO returned by the API.
+	 */
 	private NotificationResponse mapToResponse(Notification notification) {
 		NotificationResponse response = new NotificationResponse();
 		response.setId(notification.getId());

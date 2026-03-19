@@ -24,6 +24,11 @@ import com.example.blog.repository.PostRepository;
 import com.example.blog.repository.UserRepository;
 import com.example.blog.repository.UserSubscriptionRepository;
 
+/**
+ * Administrative orchestration layer for moderation features such as reviewing
+ * reports, banning/unbanning users, and moderating posts. Wraps repository
+ * calls with authorization checks and transactional guarantees.
+ */
 @Service
 public class AdminService {
 
@@ -50,12 +55,19 @@ public class AdminService {
 		this.reportService = reportService;
 	}
 
+	/**
+	 * Returns the full moderation queue. Only admins may invoke this method.
+	 */
 	@Transactional(readOnly = true)
 	public List<ReportResponse> getReports(User admin) {
 		ensureAdmin(admin);
 		return reportService.getAllReports(admin);
 	}
 	
+	/**
+	 * Lists every account in the system with aggregate data so admins can review
+	 * status, role, and post volume.
+	 */
 	@Transactional(readOnly = true)
 	public List<AdminUserResponse> getUsers(User admin) {
 		ensureAdmin(admin);
@@ -75,18 +87,28 @@ public class AdminService {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * Pulls every post (even hidden ones) for administrative inspection.
+	 */
 	@Transactional(readOnly = true)
 	public List<PostResponse> getAllPosts(User admin) {
 		ensureAdmin(admin);
 		return postService.getAllPosts(admin);
 	}
 
+	/**
+	 * Marks the specified report as resolved. Useful when an admin chooses to
+	 * acknowledge a report without taking further action.
+	 */
 	@Transactional
 	public ReportResponse resolveReport(UUID reportId, User admin) {
 		ensureAdmin(admin);
 		return reportService.resolveReport(reportId, admin);
 	}
 
+	/**
+	 * Bans a non-admin user and resolves any active reports targeting them.
+	 */
 	@Transactional
 	public void banUser(UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
@@ -101,6 +123,9 @@ public class AdminService {
 		reportService.resolveReportsForUser(targetUserId);
 	}
 
+	/**
+	 * Restores access to a previously banned account.
+	 */
 	@Transactional
 	public void unbanUser(UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
@@ -111,6 +136,10 @@ public class AdminService {
 		}
 	}
 
+	/**
+	 * Permanently deletes a user and all of their content/subscriptions,
+	 * including any related reports and notifications.
+	 */
 	@Transactional
 	public void removeUser(UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
@@ -120,8 +149,8 @@ public class AdminService {
 		}
 		List<Post> posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(target.getId());
 		for (Post post : posts) {
+			reportService.deleteReportsForPost(post.getId());
 			postService.deletePost(post.getId(), admin);
-			reportService.resolveReportsForPost(post.getId());
 		}
 		postLikeRepository.deleteByUserId(target.getId());
 		postCommentRepository.deleteByAuthorId(target.getId());
@@ -129,10 +158,13 @@ public class AdminService {
 		userSubscriptionRepository.deleteByTargetId(target.getId());
 		notificationRepository.deleteByRecipientId(target.getId());
 		notificationRepository.deleteByActorId(target.getId());
-		reportService.resolveReportsForUser(target.getId());
+		reportService.deleteReportsForUser(target.getId());
 		userRepository.delete(target);
 	}
 
+	/**
+	 * Flags a post as hidden (soft delete) and resolves associated reports.
+	 */
 	@Transactional
 	public PostResponse hidePost(UUID postId, User admin) {
 		ensureAdmin(admin);
@@ -141,19 +173,28 @@ public class AdminService {
 		return response;
 	}
 
+	/**
+	 * Reverses `hidePost`, making the content visible again.
+	 */
 	@Transactional
 	public PostResponse unhidePost(UUID postId, User admin) {
 		ensureAdmin(admin);
 		return postService.setPostHidden(postId, false, admin);
 	}
 
+	/**
+	 * Hard-deletes a post along with any reports pointing to it.
+	 */
 	@Transactional
 	public void deletePost(UUID postId, User admin) {
 		ensureAdmin(admin);
+		reportService.deleteReportsForPost(postId);
 		postService.deletePost(postId, admin);
-		reportService.resolveReportsForPost(postId);
 	}
 
+	/**
+	 * Guards all admin operations to ensure the caller is an authenticated admin.
+	 */
 	private void ensureAdmin(User user) {
 		if (user == null) {
 			throw new UnauthorizedException("Authentication required");
@@ -163,6 +204,9 @@ public class AdminService {
 		}
 	}
 
+	/**
+	 * Loads a user or throws a 404-style exception when the id is unknown.
+	 */
 	private User getManagedUser(UUID userId) {
 		return userRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
