@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, of, switchMap, takeUntil, catchError } from 'rxjs';
 
-import { Post } from '../../core/models/post.models';
+import { Post, PostComment } from '../../core/models/post.models';
 import { PostService } from '../../core/services/post.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ReportService } from '../../core/services/report.service';
@@ -30,6 +30,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   reportSubmitting = false;
   reportError = '';
   readonly reportMaxLength = 1000;
+  private readonly commentDeletionState = new Set<string>();
 
   private readonly route = inject(ActivatedRoute);
   private readonly postService = inject(PostService);
@@ -112,7 +113,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   openReportModal(): void {
-    if (this.isOwner()) {
+    if (this.isOwner() || this.hasReportedPost()) {
       return;
     }
     this.reportForm.reset();
@@ -128,17 +129,20 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   submitReport(): void {
-    if (!this.post) {
+    if (!this.post || this.hasReportedPost()) {
       return;
     }
     if (this.reportForm.invalid) {
       this.reportForm.markAllAsTouched();
       return;
     }
+    if (!confirm('Submit this report for review?')) {
+      return;
+    }
     this.reportSubmitting = true;
     this.reportError = '';
     const reason = this.reportForm.controls.reason.value ?? '';
-    this.reportService.reportPost(this.post.id, reason).subscribe({
+    this.reportService.reportPost(this.post.id, reason, this.currentUserId).subscribe({
       next: () => {
         this.reportSubmitting = false;
         this.closeReportModal();
@@ -187,6 +191,11 @@ export class PostDetailComponent implements OnDestroy, OnInit {
     return this.reportForm.controls.reason.value?.length ?? 0;
   }
 
+  get reportReasonHasError(): boolean {
+    const control = this.reportForm.controls.reason;
+    return control.invalid && (control.dirty || control.touched);
+  }
+
   canReportPost(): boolean {
     if (!this.post || this.isOwner()) {
       return false;
@@ -195,6 +204,60 @@ export class PostDetailComponent implements OnDestroy, OnInit {
       return false;
     }
     return this.post.author.role !== 'ADMIN';
+  }
+
+  hasReportedPost(): boolean {
+    if (!this.post) {
+      return false;
+    }
+    return this.reportService.hasReportedPost(this.post.id, this.currentUserId);
+  }
+
+  canDeleteComment(comment: PostComment): boolean {
+    if (!this.currentUserId) {
+      return false;
+    }
+    if (comment.author.id === this.currentUserId) {
+      return true;
+    }
+    return this.currentUserRole === 'ADMIN';
+  }
+
+  isCommentDeletePending(commentId: string): boolean {
+    return this.commentDeletionState.has(commentId);
+  }
+
+  deleteComment(comment: PostComment): void {
+    if (!this.post || !comment?.id) {
+      return;
+    }
+    if (this.commentDeletionState.has(comment.id)) {
+      return;
+    }
+    if (!this.canDeleteComment(comment)) {
+      return;
+    }
+    this.commentError = '';
+    this.commentDeletionState.add(comment.id);
+    this.postService.deleteComment(this.post.id, comment.id).subscribe({
+      next: () => {
+        if (!this.post) {
+          this.commentDeletionState.delete(comment.id);
+          return;
+        }
+        const remaining = (this.post.comments ?? []).filter((item) => item.id !== comment.id);
+        this.post = {
+          ...this.post,
+          comments: remaining,
+          commentCount: Math.max(this.post.commentCount - 1, 0)
+        };
+        this.commentDeletionState.delete(comment.id);
+      },
+      error: (err) => {
+        this.commentError = this.resolveErrorMessage(err, 'Unable to delete that comment right now.');
+        this.commentDeletionState.delete(comment.id);
+      }
+    });
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {

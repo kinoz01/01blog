@@ -32,6 +32,22 @@
   margin-bottom: 0.5rem;
 }
 
+.report-card__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.report-dismiss {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+
 .reason {
   font-size: 1rem;
   line-height: 1.5;
@@ -139,7 +155,7 @@
 .menu-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 0.5rem);
+  top: 4rem;
   background: rgba(5, 6, 10, 0.95);
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 0.75rem;

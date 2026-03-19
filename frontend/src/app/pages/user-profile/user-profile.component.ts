@@ -133,6 +133,10 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     );
   }
 
+  get hasReportedProfile(): boolean {
+    return !!this.profile && this.reportService.hasReportedUser(this.profile.id, this.currentUserId);
+  }
+
   get activeExistingMediaCount(): number {
     return this.existingMedia.filter((media) => !media.markedForRemoval).length;
   }
@@ -238,7 +242,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   openReportModal(): void {
-    if (!this.profile || this.isProfileOwner) {
+    if (!this.profile || this.isProfileOwner || this.hasReportedProfile) {
       return;
     }
     this.reportForm.reset();
@@ -254,17 +258,20 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   submitReport(): void {
-    if (!this.profile) {
+    if (!this.profile || this.hasReportedProfile) {
       return;
     }
     if (this.reportForm.invalid) {
       this.reportForm.markAllAsTouched();
       return;
     }
+    if (!confirm('Submit this report for review?')) {
+      return;
+    }
     this.reportSubmitting = true;
     this.reportError = '';
     const reason = this.reportForm.controls.reason.value ?? '';
-    this.reportService.reportUser(this.profile.id, reason).subscribe({
+    this.reportService.reportUser(this.profile.id, reason, this.currentUserId).subscribe({
       next: () => {
         this.reportSubmitting = false;
         this.closeReportModal();
@@ -278,6 +285,11 @@ export class UserProfileComponent implements OnDestroy, OnInit {
 
   get reportReasonLength(): number {
     return this.reportForm.controls.reason.value?.length ?? 0;
+  }
+
+  get reportReasonHasError(): boolean {
+    const control = this.reportForm.controls.reason;
+    return control.invalid && (control.dirty || control.touched);
   }
 
   openComposer(post?: Post): void {

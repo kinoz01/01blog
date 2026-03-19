@@ -25,6 +25,10 @@ import com.example.blog.repository.PostRepository;
 import com.example.blog.repository.ReportRepository;
 import com.example.blog.repository.UserRepository;
 
+/**
+ * Responsible for creating, resolving, and deleting abuse reports for posts
+ * and users. Enforces who can file and who can act on reports.
+ */
 @Service
 public class ReportService {
 
@@ -38,6 +42,10 @@ public class ReportService {
 		this.postRepository = postRepository;
 	}
 
+	/**
+	 * Stores a report against a user, ensuring the reporter is active and not
+	 * targeting themselves.
+	 */
 	@Transactional
 	public void reportUser(UUID userId, ReportRequest request, User reporter) {
 		User actor = requireActiveUser(reporter);
@@ -55,6 +63,9 @@ public class ReportService {
 		reportRepository.save(report);
 	}
 
+	/**
+	 * Stores a report targeting a post. Authors cannot report their own content.
+	 */
 	@Transactional
 	public void reportPost(UUID postId, ReportRequest request, User reporter) {
 		User actor = requireActiveUser(reporter);
@@ -72,6 +83,9 @@ public class ReportService {
 		reportRepository.save(report);
 	}
 
+	/**
+	 * Returns every report in descending creation order. Admins only.
+	 */
 	@Transactional(readOnly = true)
 	public List<ReportResponse> getAllReports(User admin) {
 		ensureAdmin(admin);
@@ -80,6 +94,9 @@ public class ReportService {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * Marks a single report as resolved and records the timestamp.
+	 */
 	@Transactional
 	public ReportResponse resolveReport(UUID reportId, User admin) {
 		ensureAdmin(admin);
@@ -93,6 +110,9 @@ public class ReportService {
 		return mapToResponse(report);
 	}
 
+	/**
+	 * Bulk-resolves all open reports against a specific user.
+	 */
 	@Transactional
 	public void resolveReportsForUser(UUID userId) {
 		List<Report> reports = reportRepository.findAllByReportedUserIdAndStatus(userId, ReportStatus.OPEN);
@@ -103,6 +123,9 @@ public class ReportService {
 		reportRepository.saveAll(reports);
 	}
 
+	/**
+	 * Bulk-resolves open reports for a post (typically after moderation).
+	 */
 	@Transactional
 	public void resolveReportsForPost(UUID postId) {
 		List<Report> reports = reportRepository.findAllByReportedPostIdAndStatus(postId, ReportStatus.OPEN);
@@ -113,6 +136,33 @@ public class ReportService {
 		reportRepository.saveAll(reports);
 	}
 
+	/**
+	 * Removes all reports referencing the given post (used before hard delete).
+	 */
+	@Transactional
+	public void deleteReportsForPost(UUID postId) {
+		if (postId == null) {
+			return;
+		}
+		reportRepository.deleteByReportedPostId(postId);
+	}
+
+	/**
+	 * Deletes reports created by or targeting the given user (used when removing
+	 * the account).
+	 */
+	@Transactional
+	public void deleteReportsForUser(UUID userId) {
+		if (userId == null) {
+			return;
+		}
+		reportRepository.deleteByReporterId(userId);
+		reportRepository.deleteByReportedUserId(userId);
+	}
+
+	/**
+	 * Ensures the reporter is authenticated and not banned.
+	 */
 	private User requireActiveUser(User user) {
 		if (user == null) {
 			throw new UnauthorizedException("Authentication required");
@@ -123,12 +173,18 @@ public class ReportService {
 		return user;
 	}
 
+	/**
+	 * Restricts administrative actions to ADMIN role users.
+	 */
 	private void ensureAdmin(User user) {
 		if (user == null || user.getRole() != Role.ADMIN) {
 			throw new ForbiddenException("Administrator privileges required");
 		}
 	}
 
+	/**
+	 * Sanitises the free-form report reason field.
+	 */
 	private String normalizeReason(String rawReason) {
 		if (!StringUtils.hasText(rawReason)) {
 			throw new BadRequestException("Reason is required");
@@ -140,6 +196,9 @@ public class ReportService {
 		return reason;
 	}
 
+	/**
+	 * Converts a Report entity and its relationships into the API DTO.
+	 */
 	private ReportResponse mapToResponse(Report report) {
 		ReportResponse response = new ReportResponse();
 		response.setId(report.getId());

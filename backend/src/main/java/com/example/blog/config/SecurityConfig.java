@@ -20,7 +20,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.example.blog.security.JwtAuthenticationFilter;
 
-@Configuration // Source of bean definitions
+/**
+ * Central Spring Security configuration: defines the filter chain, auth manager,
+ * password encoder, and CORS policy used by the application.
+ */
+@Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig {
@@ -36,6 +40,11 @@ public class SecurityConfig {
 		this.allowedOrigins = FRONTEND_ORIGINS;
 	}
 
+	/**
+	 * Assembles the HttpSecurity filter chain: disable CSRF (since we are stateless
+	 * with JWTs), enable stateless sessions, wire CORS, and insert the JWT + rate
+	 * limiting filters ahead of the username/password filter.
+	 */
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
@@ -49,18 +58,30 @@ public class SecurityConfig {
 
 	// AuthenticationManager isn't avaialable in the Spring Context by default
 	// while AuthenticationConfiguration is avaialable and it holds UserDetailsService & PasswordEncoder
+	/**
+	 * Exposes the AuthenticationManager built by Spring so services/controllers can
+	 * inject it directly.
+	 */
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
 		return config.getAuthenticationManager();
 	}
 
 	// The PasswordEncoder instance registred in "Spring Context" and injected into DataInitializer
+	/**
+	 * Application-wide password encoder (BCrypt) used when storing or validating
+	 * credentials.
+	 */
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 
 	// These are browser to server setup, they do not apply to raw http or server calls
+	/**
+	 * Configures allowed origins/methods/headers for browser clients (Angular app)
+	 * so cross-origin requests succeed.
+	 */
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();

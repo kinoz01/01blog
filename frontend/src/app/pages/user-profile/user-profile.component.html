@@ -51,8 +51,10 @@
           class="btn btn-outline-warning text-white fw-semibold"
           (click)="openReportModal()"
           *ngIf="canReportProfile"
+          [disabled]="hasReportedProfile"
         >
-          Report profile
+          <span *ngIf="!hasReportedProfile">Report profile</span>
+          <span *ngIf="hasReportedProfile">Reported</span>
         </button>
       </div>
     </section>
@@ -176,7 +178,12 @@
           formControlName="reason"
           placeholder="Describe why this profile should be reviewed"
           [attr.maxlength]="reportReasonMax"
+          [class.is-invalid]="reportReasonHasError"
         ></textarea>
+        <div class="invalid-feedback d-block" *ngIf="reportReasonHasError">
+          <span *ngIf="reportForm.controls.reason.hasError('required')">Reason is required.</span>
+          <span *ngIf="reportForm.controls.reason.hasError('minlength')">Please enter at least 5 characters.</span>
+        </div>
         <div class="form-text text-end text-white-50">
           {{ reportReasonLength }}/{{ reportReasonMax }} characters
         </div>

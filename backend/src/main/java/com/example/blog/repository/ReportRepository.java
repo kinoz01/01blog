@@ -20,4 +20,10 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
 	List<Report> findAllByReportedUserIdAndStatus(UUID userId, ReportStatus status);
 
 	List<Report> findAllByReportedPostIdAndStatus(UUID postId, ReportStatus status);
+
+	void deleteByReporterId(UUID reporterId);
+
+	void deleteByReportedUserId(UUID userId);
+
+	void deleteByReportedPostId(UUID postId);
 }

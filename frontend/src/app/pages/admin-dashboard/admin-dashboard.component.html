@@ -21,13 +21,9 @@
   <div class="report-list" *ngIf="reports.length">
     <article class="report-card" *ngFor="let report of reports">
       <header class="report-card__header">
-        <span
-          class="badge rounded-pill"
-          [ngClass]="report.status === 'OPEN' ? 'text-bg-warning text-dark' : 'text-bg-success'"
-        >
-          {{ report.status }}
-        </span>
-        <small class="text-white-50">{{ report.createdAt | date: 'medium' }}</small>
+        <div class="report-card__status">
+          <small class="text-white-50">{{ report.createdAt | date: 'medium' }}</small>
+        </div>
       </header>
 
       <p class="text-white-50 text-uppercase small mb-1">{{ report.targetType === 'USER' ? 'Profile report' : 'Post report' }}</p>
@@ -64,16 +60,6 @@
       </div>
 
       <div class="report-actions">
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-light"
-          (click)="resolve(report)"
-          [disabled]="isActionPending('resolve-' + report.id)"
-        >
-          <span *ngIf="!isActionPending('resolve-' + report.id)">Mark resolved</span>
-          <span *ngIf="isActionPending('resolve-' + report.id)">Working...</span>
-        </button>
-
         <ng-container *ngIf="report.reportedUser">
           <button
             type="button"

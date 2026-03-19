@@ -18,6 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.blog.exception.MediaStorageException;
 
+/**
+ * Handles storing uploaded media on disk, validating MIME types, generating
+ * safe filenames, and serving the resulting public URLs back to callers.
+ */
 @Service
 public class MediaStorageService {
 
@@ -37,6 +41,11 @@ public class MediaStorageService {
 		}
 	}
 
+	/**
+	 * Persists a single uploaded file after validating type and extension. The
+	 * returned record includes the internal filename and the public URL the
+	 * frontend can reference.
+	 */
 	public StoredMedia store(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
 			throw new MediaStorageException("Cannot store empty media file");
@@ -60,6 +69,9 @@ public class MediaStorageService {
 		return new StoredMedia(fileName, mimeType, publicUrl, file.getOriginalFilename());
 	}
 
+	/**
+	 * Uses Apache Tika to sniff the MIME type from the file stream.
+	 */
 	private String detectMimeType(MultipartFile file) {
 		try {
 			return tika.detect(file.getInputStream(), file.getOriginalFilename());
@@ -68,6 +80,10 @@ public class MediaStorageService {
 		}
 	}
 
+	/**
+	 * Determines the best file extension to use for storage, falling back to the
+	 * original filename when Tika cannot determine one.
+	 */
 	private String resolveExtension(String mimeType, String originalName) {
 		try {
 			String extension = mimeTypes.forName(mimeType).getExtension();
@@ -80,6 +96,10 @@ public class MediaStorageService {
 		return fallback == null || fallback.isBlank() ? "" : "." + fallback;
 	}
 
+	/**
+	 * Builds the absolute URL exposed to clients. Works for both relative and
+	 * absolute base URLs.
+	 */
 	private String formatPublicUrl(String filename) {
 		if (mediaBaseUrl.startsWith("http")) {
 			return mediaBaseUrl.endsWith("/") ? mediaBaseUrl + filename : mediaBaseUrl + "/" + filename;
@@ -87,6 +107,10 @@ public class MediaStorageService {
 		return mediaBaseUrl.endsWith("/") ? mediaBaseUrl + filename : mediaBaseUrl + "/" + filename;
 	}
 
+	/**
+	 * SVG files are blocked due to XSS concerns. This helper looks at both the
+	 * MIME type and the original extension to catch them.
+	 */
 	private boolean isSvgFile(String mimeType, String originalName) {
 		if (mimeType != null && mimeType.toLowerCase(Locale.ROOT).contains("svg")) {
 			return true;
@@ -95,9 +119,15 @@ public class MediaStorageService {
 		return extension != null && extension.equalsIgnoreCase("svg");
 	}
 
+	/**
+	 * DTO used to return info about the stored file to callers.
+	 */
 	public record StoredMedia(String fileName, String mimeType, String url, String originalFileName) {
 	}
 
+	/**
+	 * Deletes a previously stored file if it exists.
+	 */
 	public void delete(String fileName) {
 		if (!StringUtils.hasText(fileName)) {
 			return;

@@ -24,6 +24,7 @@ export class AdminDashboardComponent implements OnInit {
   menuContext: { type: 'user' | 'post'; id: string } | null = null;
   private readonly adminService = inject(AdminService);
   private readonly actionState = new Set<string>();
+  private readonly dismissedReportIds = new Set<string>();
 
   ngOnInit(): void {
     this.loadAll();
@@ -45,7 +46,7 @@ export class AdminDashboardComponent implements OnInit {
       posts: this.adminService.getPosts()
     }).subscribe({
       next: ({ reports, users, posts }) => {
-        this.reports = reports;
+        this.reports = reports.filter((report) => !this.dismissedReportIds.has(report.id));
         this.users = users;
         this.posts = posts;
         this.isLoading = false;
@@ -72,10 +73,6 @@ export class AdminDashboardComponent implements OnInit {
   
   onMenuContentClick(event: MouseEvent): void {
     event.stopPropagation();
-  }
-
-  resolve(report: ReportSummary): void {
-    this.runAction(`resolve-${report.id}`, this.adminService.resolveReport(report.id));
   }
 
   banUserById(userId: string): void {
@@ -105,7 +102,13 @@ export class AdminDashboardComponent implements OnInit {
     if (!confirm('Delete this post permanently? This cannot be undone.')) {
       return;
     }
-    this.runAction(`delete-${postId}`, this.adminService.deletePost(postId));
+    this.runAction(`delete-${postId}`, this.adminService.deletePost(postId), () => {
+      this.posts = this.posts.filter((post) => post.id !== postId);
+      this.reports = this.reports.filter((report) => report.reportedPost?.id !== postId);
+      if (this.menuContext?.type === 'post' && this.menuContext.id === postId) {
+        this.menuContext = null;
+      }
+    });
   }
 
   toggleUserBan(user: AdminUser): void {
@@ -172,13 +175,14 @@ export class AdminDashboardComponent implements OnInit {
     this.deletePostById(postId);
   }
 
-  private runAction<T>(key: string, action$: Observable<T>): void {
+  private runAction<T>(key: string, action$: Observable<T>, onSuccess?: () => void): void {
     if (this.actionState.has(key)) {
       return;
     }
     this.actionState.add(key);
     action$.subscribe({
       next: () => {
+        onSuccess?.();
         this.actionState.delete(key);
         this.loadAll(false);
       },
