@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,7 +73,7 @@ public class UserService {
 	 * themselves can view the result.
 	 */
 	@PostAuthorize("hasRole('ADMIN') or (returnObject != null && returnObject.email == authentication.name)")
-	public UserResponse getUserById(UUID id) {
+	public UserResponse getUserById(@NonNull UUID id) {
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 		return mapToResponse(user);
@@ -82,7 +83,7 @@ public class UserService {
 	 * Builds the public profile view including posts and subscription state
 	 * relative to the current viewer.
 	 */
-	public UserProfileResponse getPublicProfile(UUID id, User currentUser) {
+	public UserProfileResponse getPublicProfile(@NonNull UUID id, User currentUser) {
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 		List<PostResponse> posts = postService.getPostsByAuthor(id, currentUser);
@@ -105,7 +106,7 @@ public class UserService {
 	 * feed.
 	 */
 	@Transactional
-	public void subscribe(User subscriber, UUID targetId) {
+	public void subscribe(User subscriber, @NonNull UUID targetId) {
 		User actor = requireAuthenticatedUser(subscriber);
 		if (actor.getId().equals(targetId)) {
 			throw new BadRequestException("You cannot subscribe to yourself");
@@ -125,7 +126,7 @@ public class UserService {
 	 * Removes a subscription relationship if it exists.
 	 */
 	@Transactional
-	public void unsubscribe(User subscriber, UUID targetId) {
+	public void unsubscribe(User subscriber, @NonNull UUID targetId) {
 		User actor = requireAuthenticatedUser(subscriber);
 		if (actor.getId().equals(targetId)) {
 			return;
@@ -157,7 +158,7 @@ public class UserService {
 	/**
 	 * Updates mutable fields on a user. Only admins may perform this action.
 	 */
-	public UserResponse updateUser(UUID id, UserUpdateRequest request, User requester) {
+	public UserResponse updateUser(@NonNull UUID id, UserUpdateRequest request, User requester) {
 		if (requester == null) {
 			throw new UnauthorizedException("Authentication required");
 		}
@@ -197,7 +198,7 @@ public class UserService {
 	/**
 	 * Deletes a user by id (admin-only) with guardrails preventing self-deletion.
 	 */
-	public void deleteUser(UUID id, User requester) {
+	public void deleteUser(@NonNull UUID id, User requester) {
 		User actor = requireAuthenticatedUser(requester);
 		if (actor.getRole() != Role.ADMIN) {
 			throw new ForbiddenException("Only administrators can delete users");

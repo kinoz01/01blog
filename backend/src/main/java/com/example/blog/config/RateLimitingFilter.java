@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,7 +39,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 	 * back a 429 response with a JSON payload describing the error.
 	 */
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain nextFilter)
+	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+			@NonNull FilterChain nextFilter)
 			throws ServletException, IOException {
 		String ip = request.getRemoteAddr();
 		SimpleBucket bucket = cache.computeIfAbsent(ip, this::createBucket);
@@ -67,7 +69,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 	 * headers without being throttled.
 	 */
 	@Override
-	protected boolean shouldNotFilter(HttpServletRequest request) {
+	protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
 		return "OPTIONS".equalsIgnoreCase(request.getMethod());
 	}
 

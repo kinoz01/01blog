@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -90,7 +91,7 @@ public class PostService {
 	 * `currentUser` is allowed to view.
 	 */
 	@Transactional(readOnly = true)
-	public List<PostResponse> getPostsByAuthor(UUID authorId, User currentUser) {
+	public List<PostResponse> getPostsByAuthor(@NonNull UUID authorId, User currentUser) {
 		List<Post> posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(authorId);
 		return mapPosts(posts, currentUser, false);
 	}
@@ -112,7 +113,7 @@ public class PostService {
 	 * Convenience method used for profile stats showing total posts per user.
 	 */
 	@Transactional(readOnly = true)
-	public long countPostsByAuthor(UUID authorId) {
+	public long countPostsByAuthor(@NonNull UUID authorId) {
 		return postRepository.countByAuthorId(authorId);
 	}
 
@@ -121,7 +122,7 @@ public class PostService {
 	 * posts are limited to admins or the author).
 	 */
 	@Transactional(readOnly = true)
-	public PostResponse getPost(UUID postId, User currentUser) {
+	public PostResponse getPost(@NonNull UUID postId, User currentUser) {
 		Post post = getPostOrThrow(postId);
 		if (!canViewPost(post, currentUser)) {
 			throw new ForbiddenException("You cannot view this post");
@@ -168,7 +169,7 @@ public class PostService {
 	 * removal and upload additional files in the same operation.
 	 */
 	@Transactional
-	public PostResponse updatePost(UUID postId, String title, String description, List<UUID> removeMediaIds,
+	public PostResponse updatePost(@NonNull UUID postId, String title, String description, List<UUID> removeMediaIds,
 			List<MultipartFile> newMediaFiles, User currentUser) {
 		User owner = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
@@ -185,7 +186,7 @@ public class PostService {
 	 * Completely removes a post and any associated media/engagement data.
 	 */
 	@Transactional
-	public void deletePost(UUID postId, User currentUser) {
+	public void deletePost(@NonNull UUID postId, User currentUser) {
 		User owner = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
 		ensureOwnership(post, owner);
@@ -199,7 +200,7 @@ public class PostService {
 	 * Admin utility to toggle a post's `hidden` flag.
 	 */
 	@Transactional
-	public PostResponse setPostHidden(UUID postId, boolean hidden, User currentUser) {
+	public PostResponse setPostHidden(@NonNull UUID postId, boolean hidden, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
 		if (!isAdmin(actor)) {
 			throw new ForbiddenException("Administrator privileges required");
@@ -215,7 +216,7 @@ public class PostService {
 	 * with the post.
 	 */
 	@Transactional
-	public PostResponse likePost(UUID postId, User currentUser) {
+	public PostResponse likePost(@NonNull UUID postId, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
 		if (!canViewPost(post, actor)) {
@@ -234,7 +235,7 @@ public class PostService {
 	 * Removes a previously registered like.
 	 */
 	@Transactional
-	public PostResponse unlikePost(UUID postId, User currentUser) {
+	public PostResponse unlikePost(@NonNull UUID postId, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
 		if (!canViewPost(post, actor)) {
@@ -248,7 +249,7 @@ public class PostService {
 	 * Adds a comment authored by the current user.
 	 */
 	@Transactional
-	public PostCommentResponse addComment(UUID postId, String content, User currentUser) {
+	public PostCommentResponse addComment(@NonNull UUID postId, String content, User currentUser) {
 		User author = requireAuthenticatedUser(currentUser);
 		Post post = getPostOrThrow(postId);
 		if (!canViewPost(post, author)) {
@@ -267,7 +268,7 @@ public class PostService {
 	 * Deletes a comment when requested by its author or an admin.
 	 */
 	@Transactional
-	public void deleteComment(UUID postId, UUID commentId, User currentUser) {
+	public void deleteComment(@NonNull UUID postId, @NonNull UUID commentId, User currentUser) {
 		User actor = requireAuthenticatedUser(currentUser);
 		PostComment comment = postCommentRepository.findById(commentId)
 				.orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
@@ -556,7 +557,7 @@ public class PostService {
 	/**
 	 * Loads a post or throws a 404-style exception when missing.
 	 */
-	private Post getPostOrThrow(UUID postId) {
+	private Post getPostOrThrow(@NonNull UUID postId) {
 		return postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post not found"));
 	}
 
@@ -582,11 +583,15 @@ public class PostService {
 			return;
 		}
 		List<User> recipients = userRepository.findAllById(subscriberIds);
+		UUID postId = post.getId();
+		if (postId == null) {
+			return;
+		}
 		for (User recipient : recipients) {
 			if (recipient.getId().equals(author.getId())) {
 				continue;
 			}
-			notificationService.notifyPostPublished(author, recipient, post.getId());
+			notificationService.notifyPostPublished(author, recipient, postId);
 		}
 	}
 }

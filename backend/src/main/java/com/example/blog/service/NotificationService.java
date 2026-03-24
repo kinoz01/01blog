@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,7 @@ public class NotificationService {
 	 * post. Self-notifications are ignored.
 	 */
 	@Transactional
-	public void notifyPostPublished(User actor, User recipient, UUID postId) {
+	public void notifyPostPublished(User actor, User recipient, @NonNull UUID postId) {
 		if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {
 			return;
 		}
@@ -49,7 +50,7 @@ public class NotificationService {
 	 * Returns all notifications for the given user, newest first.
 	 */
 	@Transactional(readOnly = true)
-	public List<NotificationResponse> getNotifications(User user) {
+	public List<NotificationResponse> getNotifications(@NonNull User user) {
 		return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(user.getId()).stream()
 				.map(this::mapToResponse)
 				.collect(Collectors.toList());
@@ -59,7 +60,7 @@ public class NotificationService {
 	 * Marks a single notification as read, enforcing ownership.
 	 */
 	@Transactional
-	public void markAsRead(User user, UUID notificationId) {
+	public void markAsRead(@NonNull User user, @NonNull UUID notificationId) {
 		Notification notification = notificationRepository.findById(notificationId)
 				.orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 		if (!notification.getRecipient().getId().equals(user.getId())) {
@@ -75,7 +76,7 @@ public class NotificationService {
 	 * Hard-deletes a notification the current user owns.
 	 */
 	@Transactional
-	public void delete(User user, UUID notificationId) {
+	public void delete(@NonNull User user, @NonNull UUID notificationId) {
 		Notification notification = notificationRepository.findById(notificationId)
 				.orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 		if (!notification.getRecipient().getId().equals(user.getId())) {

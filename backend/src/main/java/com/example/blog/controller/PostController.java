@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,13 +44,14 @@ public class PostController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.getFeed(currentUser));
 	}
 
 	@GetMapping("/{postId}")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<PostResponse> getPost(@PathVariable UUID postId, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<PostResponse> getPost(@PathVariable @NonNull UUID postId,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.getPost(postId, currentUser));
 	}
 
@@ -58,59 +60,62 @@ public class PostController {
 	public ResponseEntity<PostResponse> createPost(@RequestPart("title") String title,
 			@RequestPart("description") String description,
 			@RequestPart(value = "media", required = false) List<MultipartFile> media,
-			@AuthenticationPrincipal User currentUser) {
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.createPost(title, description, media, currentUser));
 	}
 
 	@PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<PostResponse> updatePost(@PathVariable UUID postId,
+	public ResponseEntity<PostResponse> updatePost(@PathVariable @NonNull UUID postId,
 			@Valid @RequestPart("request") PostUpdateRequest request,
 			@RequestPart(value = "media", required = false) List<MultipartFile> media,
-			@AuthenticationPrincipal User currentUser) {
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity
 				.ok(postService.updatePost(postId, request.getTitle(), request.getDescription(), request.getRemoveMediaIds(), media, currentUser));
 	}
 
 	@DeleteMapping("/{postId}")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> deletePost(@PathVariable UUID postId, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> deletePost(@PathVariable @NonNull UUID postId,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		postService.deletePost(postId, currentUser);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/{postId}/likes")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<PostResponse> likePost(@PathVariable UUID postId, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<PostResponse> likePost(@PathVariable @NonNull UUID postId,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.likePost(postId, currentUser));
 	}
 
 	@DeleteMapping("/{postId}/likes")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<PostResponse> unlikePost(@PathVariable UUID postId, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<PostResponse> unlikePost(@PathVariable @NonNull UUID postId,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.unlikePost(postId, currentUser));
 	}
 
 	@PostMapping("/{postId}/comments")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<PostCommentResponse> addComment(@PathVariable UUID postId,
+	public ResponseEntity<PostCommentResponse> addComment(@PathVariable @NonNull UUID postId,
 			@Valid @RequestBody PostCommentRequest request,
-			@AuthenticationPrincipal User currentUser) {
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.addComment(postId, request.getContent(), currentUser));
 	}
 
 	@DeleteMapping("/{postId}/comments/{commentId}")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> deleteComment(@PathVariable UUID postId, @PathVariable UUID commentId,
-			@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> deleteComment(@PathVariable @NonNull UUID postId,
+			@PathVariable @NonNull UUID commentId, @AuthenticationPrincipal @NonNull User currentUser) {
 		postService.deleteComment(postId, commentId, currentUser);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/{postId}/report")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> reportPost(@PathVariable UUID postId, @Valid @RequestBody ReportRequest request,
-			@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> reportPost(@PathVariable @NonNull UUID postId, @Valid @RequestBody ReportRequest request,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		reportService.reportPost(postId, request, currentUser);
 		return ResponseEntity.accepted().build();
 	}

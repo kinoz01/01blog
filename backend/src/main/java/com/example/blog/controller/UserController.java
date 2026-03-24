@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -54,7 +55,7 @@ public class UserController {
 
 	@GetMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or (isAuthenticated() and #id == principal.id)")
-	public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
+	public ResponseEntity<UserResponse> getUserById(@PathVariable @NonNull UUID id) {
 		return ResponseEntity.ok(userService.getUserById(id));
 	}
 
@@ -66,49 +67,52 @@ public class UserController {
 
 	@GetMapping("/{id}/profile")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<UserProfileResponse> getPublicProfile(@PathVariable UUID id,
-			@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<UserProfileResponse> getPublicProfile(@PathVariable @NonNull UUID id,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(userService.getPublicProfile(id, currentUser));
 	}
 
 	@PostMapping("/{id}/subscribe")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> subscribe(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> subscribe(@PathVariable @NonNull UUID id,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		userService.subscribe(currentUser, id);
 		return ResponseEntity.ok().build();
 	}
 
 	@DeleteMapping("/{id}/subscribe")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> unsubscribe(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> unsubscribe(@PathVariable @NonNull UUID id,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		userService.unsubscribe(currentUser, id);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request,
-			@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<UserResponse> updateUser(@PathVariable @NonNull UUID id,
+			@Valid @RequestBody UserUpdateRequest request, @AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(userService.updateUser(id, request, currentUser));
 	}
 
 	@PatchMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<UserResponse> partiallyUpdateUser(@PathVariable UUID id,
-			@RequestBody UserUpdateRequest request, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<UserResponse> partiallyUpdateUser(@PathVariable @NonNull UUID id,
+			@RequestBody UserUpdateRequest request, @AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(userService.updateUser(id, request, currentUser));
 	}
 
 	@DeleteMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<Void> deleteUser(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> deleteUser(@PathVariable @NonNull UUID id,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/{id}/report")
 	@PreAuthorize("isAuthenticated()")
-	public ResponseEntity<Void> reportUser(@PathVariable UUID id, @Valid @RequestBody ReportRequest request,
-			@AuthenticationPrincipal User currentUser) {
+	public ResponseEntity<Void> reportUser(@PathVariable @NonNull UUID id, @Valid @RequestBody ReportRequest request,
+			@AuthenticationPrincipal @NonNull User currentUser) {
 		reportService.reportUser(id, request, currentUser);
 		return ResponseEntity.accepted().build();
 	}
