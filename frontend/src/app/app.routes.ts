@@ -4,6 +4,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
+// Defines the application's routing configuration, including lazy-loaded routes and route guards for authentication and authorization.
 export const routes: Routes = [
   {
     path: '',
