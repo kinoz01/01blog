@@ -53,16 +53,7 @@ public class GlobalExceptionHandler {
 		return buildResponse(HttpStatus.BAD_REQUEST, builder.toString().trim(), request);
 	}
 
-	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-	public ResponseEntity<ApiError> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex,
-			WebRequest request) {
-		String supported = ex.getSupportedHttpMethods() == null ? "none"
-				: ex.getSupportedHttpMethods().stream().map(HttpMethod::name).collect(Collectors.joining(", "));
-		String message = String.format("Request method '%s' is not supported. Supported methods: %s", ex.getMethod(),
-				supported);
-		return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
-	}
-
+	
 	@ExceptionHandler(NoHandlerFoundException.class)
 	public ResponseEntity<ApiError> handleNoHandler(NoHandlerFoundException ex, WebRequest request) {
 		String message = String.format("No handler found for %s %s", ex.getHttpMethod(), ex.getRequestURL());
