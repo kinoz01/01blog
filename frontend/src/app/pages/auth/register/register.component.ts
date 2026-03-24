@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { RegisterPayload } from '../../../core.models.auth.models';
+import { RegisterPayload } from '../../../core/models/auth.models';
 
 @Component({
   selector: 'app-register',
