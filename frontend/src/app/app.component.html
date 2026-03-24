@@ -27,7 +27,7 @@
     <ng-container *ngIf="isAuthRoute; else homeView">
       <div class="container py-4 py-xl-5">
         <div class="row align-items-center g-4 g-xl-5">
-          <div class="col-lg-6 text-white hero-copy">
+          <div class="col-lg-6 text-white hero-copy text-center text-lg-start">
             <span class="badge rounded-pill text-bg-dark-subtle text-uppercase small mb-3">Join and connect</span>
             <h1 class="display-5 fw-semibold mb-3">
               Post your learning journey with Maaref
@@ -35,16 +35,16 @@
             <p class="text-white-50 mb-5">
               Maaref keeps your learning journey organized, social and interesting. Share weekly updates and celebrate breakthroughs.
             </p>
-            <div class="row g-3">
-              <div class="col-sm-6">
-                <div class="stat-tile">
+            <div class="row g-3 justify-content-center justify-content-lg-start">
+              <div class="col-sm-8 col-lg-6">
+                <div class="stat-tile mx-auto mx-lg-0 text-center text-lg-start">
                   <span class="label">Waitlist members</span>
                   <strong>50+</strong>
                 </div>
               </div>
             </div>
           </div>
-          <div class="col-lg-6">
+          <div class="col-lg-6 d-flex justify-content-center justify-content-lg-end">
             <router-outlet></router-outlet>
           </div>
         </div>
@@ -105,11 +105,11 @@
     >Admin</a
   >
   <ng-container *ngIf="!isAuthenticated; else loggedInNav">
-    <a routerLink="/login" routerLinkActive="active-link" class="nav-link" (click)="closeMenu()">Login</a>
+    <a routerLink="/login" routerLinkActive="active-link" class="nav-link auth-link" (click)="closeMenu()">Login</a>
     <a
       routerLink="/register"
       routerLinkActive="active-link"
-      class="btn btn-light rounded-pill px-4"
+      class="btn btn-light rounded-pill px-4 auth-btn"
       (click)="closeMenu()"
       >Join</a
     >
