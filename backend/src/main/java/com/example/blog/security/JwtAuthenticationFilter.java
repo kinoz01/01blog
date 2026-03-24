@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
+// Servlet filter that authenticates requests based on the Authorization header.
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtService jwtService;
@@ -30,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private final ObjectMapper objectMapper;
 
 	@Autowired
+	// Constructs the filter with the services needed for token validation.
 	public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService,
 			ObjectMapper objectMapper) {
 		this.jwtService = jwtService;
@@ -38,6 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	}
 
 	@Override
+	// Inspects each request for a JWT, authenticates, or emits errors when invalid.
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
 			@NonNull FilterChain filterChain)
 			throws ServletException, IOException {
@@ -79,6 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 
+	// Serializes a 401 JSON error payload back to the caller.
 	private void writeErrorResponse(@NonNull HttpServletResponse response, @NonNull HttpServletRequest request,
 			String message)
 			throws IOException {
