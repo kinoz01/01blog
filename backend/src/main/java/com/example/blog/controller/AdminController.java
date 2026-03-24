@@ -36,27 +36,32 @@ public class AdminController {
 	}
 
 	@GetMapping("/reports")
+	// Fetches the moderation queue for the authenticated admin.
 	public ResponseEntity<List<ReportResponse>> getReports(@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.getReports(currentUser));
 	}
-	
+
 	@GetMapping("/users")
+	// Lists every user with moderation metadata for dashboard views.
 	public ResponseEntity<List<AdminUserResponse>> getUsers(@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.getUsers(currentUser));
 	}
 
 	@GetMapping("/posts")
+	// Returns all posts, including hidden ones, for admin review.
 	public ResponseEntity<List<PostResponse>> getPosts(@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.getAllPosts(currentUser));
 	}
 
 	@PostMapping("/reports/{reportId}/resolve")
+	// Marks a report as resolved when an admin takes action.
 	public ResponseEntity<ReportResponse> resolveReport(@PathVariable @NonNull UUID reportId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.resolveReport(reportId, currentUser));
 	}
 
 	@PostMapping("/users/{userId}/ban")
+	// Applies a ban to the specified user and resolves related reports.
 	public ResponseEntity<Void> banUser(@PathVariable @NonNull UUID userId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		adminService.banUser(userId, currentUser);
@@ -64,6 +69,7 @@ public class AdminController {
 	}
 
 	@DeleteMapping("/users/{userId}/ban")
+	// Lifts an existing ban for the target user.
 	public ResponseEntity<Void> unbanUser(@PathVariable @NonNull UUID userId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		adminService.unbanUser(userId, currentUser);
@@ -71,6 +77,7 @@ public class AdminController {
 	}
 
 	@DeleteMapping("/users/{userId}")
+	// Permanently removes a user and cleans up dependent data.
 	public ResponseEntity<Void> removeUser(@PathVariable @NonNull UUID userId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		adminService.removeUser(userId, currentUser);
@@ -78,18 +85,21 @@ public class AdminController {
 	}
 
 	@PostMapping("/posts/{postId}/hide")
+	// Soft-hides a post so it no longer appears publicly.
 	public ResponseEntity<PostResponse> hidePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.hidePost(postId, currentUser));
 	}
 
 	@DeleteMapping("/posts/{postId}/hide")
+	// Reverses a hide operation, making the post visible again.
 	public ResponseEntity<PostResponse> unhidePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(adminService.unhidePost(postId, currentUser));
 	}
 
 	@DeleteMapping("/posts/{postId}")
+	// Hard-deletes a post and associated reports/media.
 	public ResponseEntity<Void> deletePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		adminService.deletePost(postId, currentUser);

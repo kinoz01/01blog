@@ -17,6 +17,10 @@ import com.example.blog.dto.NotificationResponse;
 import com.example.blog.model.User;
 import com.example.blog.service.NotificationService;
 
+/**
+ * Authenticated endpoints for listing, deleting, and otherwise managing user
+ * notifications.
+ */
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -29,12 +33,14 @@ public class NotificationController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	// Returns the recipient's notifications sorted by recency.
 	public ResponseEntity<List<NotificationResponse>> getNotifications(@AuthenticationPrincipal @NonNull User user) {
 		return ResponseEntity.ok(notificationService.getNotifications(user));
 	}
 
 	@DeleteMapping("/{id}")
 	@PreAuthorize("isAuthenticated()")
+	// Deletes a notification after verifying it belongs to the caller.
 	public ResponseEntity<Void> deleteNotification(@PathVariable @NonNull UUID id,
 			@AuthenticationPrincipal @NonNull User user) {
 		notificationService.delete(user, id);

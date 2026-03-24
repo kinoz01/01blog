@@ -30,6 +30,10 @@ import com.example.blog.service.PostService;
 
 import jakarta.validation.Valid;
 
+/**
+ * Endpoints for the authenticated post workflow: feeds, CRUD, comments,
+ * reactions, and abuse reports.
+ */
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
@@ -44,12 +48,14 @@ public class PostController {
 
 	@GetMapping
 	@PreAuthorize("isAuthenticated()")
+	// Returns the personalized feed based on the caller's subscriptions.
 	public ResponseEntity<List<PostResponse>> getFeed(@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.getFeed(currentUser));
 	}
 
 	@GetMapping("/{postId}")
 	@PreAuthorize("isAuthenticated()")
+	// Fetches a single post, enforcing visibility rules.
 	public ResponseEntity<PostResponse> getPost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.getPost(postId, currentUser));
@@ -57,6 +63,7 @@ public class PostController {
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	// Creates a new post with optional media attachments.
 	public ResponseEntity<PostResponse> createPost(@RequestPart("title") String title,
 			@RequestPart("description") String description,
 			@RequestPart(value = "media", required = false) List<MultipartFile> media,
@@ -66,6 +73,7 @@ public class PostController {
 
 	@PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("isAuthenticated()")
+	// Updates an existing post's text and media payload.
 	public ResponseEntity<PostResponse> updatePost(@PathVariable @NonNull UUID postId,
 			@Valid @RequestPart("request") PostUpdateRequest request,
 			@RequestPart(value = "media", required = false) List<MultipartFile> media,
@@ -76,6 +84,7 @@ public class PostController {
 
 	@DeleteMapping("/{postId}")
 	@PreAuthorize("isAuthenticated()")
+	// Deletes a post owned by the caller.
 	public ResponseEntity<Void> deletePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		postService.deletePost(postId, currentUser);
@@ -84,6 +93,7 @@ public class PostController {
 
 	@PostMapping("/{postId}/likes")
 	@PreAuthorize("isAuthenticated()")
+	// Registers a like for the requesting user.
 	public ResponseEntity<PostResponse> likePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.likePost(postId, currentUser));
@@ -91,6 +101,7 @@ public class PostController {
 
 	@DeleteMapping("/{postId}/likes")
 	@PreAuthorize("isAuthenticated()")
+	// Removes a previously registered like.
 	public ResponseEntity<PostResponse> unlikePost(@PathVariable @NonNull UUID postId,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		return ResponseEntity.ok(postService.unlikePost(postId, currentUser));
@@ -98,6 +109,7 @@ public class PostController {
 
 	@PostMapping("/{postId}/comments")
 	@PreAuthorize("isAuthenticated()")
+	// Adds a comment authored by the current user.
 	public ResponseEntity<PostCommentResponse> addComment(@PathVariable @NonNull UUID postId,
 			@Valid @RequestBody PostCommentRequest request,
 			@AuthenticationPrincipal @NonNull User currentUser) {
@@ -106,6 +118,7 @@ public class PostController {
 
 	@DeleteMapping("/{postId}/comments/{commentId}")
 	@PreAuthorize("isAuthenticated()")
+	// Deletes a comment when the caller is the author or an admin.
 	public ResponseEntity<Void> deleteComment(@PathVariable @NonNull UUID postId,
 			@PathVariable @NonNull UUID commentId, @AuthenticationPrincipal @NonNull User currentUser) {
 		postService.deleteComment(postId, commentId, currentUser);
@@ -114,6 +127,7 @@ public class PostController {
 
 	@PostMapping("/{postId}/report")
 	@PreAuthorize("isAuthenticated()")
+	// Files an abuse report against the specified post.
 	public ResponseEntity<Void> reportPost(@PathVariable @NonNull UUID postId, @Valid @RequestBody ReportRequest request,
 			@AuthenticationPrincipal @NonNull User currentUser) {
 		reportService.reportPost(postId, request, currentUser);
