@@ -9,6 +9,7 @@ import com.example.blog.model.Role;
 import lombok.Data;
 
 @Data
+// Public profile view combining user metadata with post listings.
 public class UserProfileResponse {
 	private UUID id;
 	private String name;

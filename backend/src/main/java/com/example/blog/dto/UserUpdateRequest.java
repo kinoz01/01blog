@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Partial update payload for admin-managed user edits.
 public class UserUpdateRequest {
 
 	@Size(min = 4, max = 25)

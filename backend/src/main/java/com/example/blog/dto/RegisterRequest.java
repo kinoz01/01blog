@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Payload for creating a new account via the public registration API.
 public class RegisterRequest {
 
 	@NotBlank

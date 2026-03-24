@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Body used when filing a report against a user or post.
 public class ReportRequest {
 
 	@NotBlank

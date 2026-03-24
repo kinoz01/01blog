@@ -8,6 +8,7 @@ import com.example.blog.model.Notification.Type;
 import lombok.Data;
 
 @Data
+// Response payload describing a notification delivered to a user.
 public class NotificationResponse {
 	private UUID id;
 	private Type type;

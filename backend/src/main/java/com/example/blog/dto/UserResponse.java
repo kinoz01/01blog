@@ -8,6 +8,7 @@ import com.example.blog.model.Role;
 import lombok.Data;
 
 @Data
+// Standard representation of a user returned to clients.
 public class UserResponse {
 	private UUID id;
 	private String name;

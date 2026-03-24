@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+// Returned after successful authentication with token details.
 public class AuthResponse {
 	private String token;
 	private String tokenType = "Bearer";

@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.Data;
 
 @Data
+// Comment details returned alongside posts or comment feeds.
 public class PostCommentResponse {
 	private UUID id;
 	private String content;
@@ -14,6 +15,7 @@ public class PostCommentResponse {
 	private AuthorSummary author;
 
 	@Data
+	// Lightweight summary of the user who wrote the comment.
 	public static class AuthorSummary {
 		private UUID id;
 		private String name;

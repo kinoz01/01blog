@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Admin payload for creating a user through the management APIs.
 public class UserRequest {
 
 	@NotBlank
