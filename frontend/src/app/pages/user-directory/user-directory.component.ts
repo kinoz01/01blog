@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './user-directory.component.html',
   styleUrl: './user-directory.component.scss'
 })
+// Page that lists users with a client-side search box.
 export class UserDirectoryComponent implements OnDestroy, OnInit {
   users: UserSummary[] = [];
   filtered: UserSummary[] = [];
@@ -28,10 +29,12 @@ export class UserDirectoryComponent implements OnDestroy, OnInit {
   private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
+    // Watch auth changes so we can filter out the current user from the directory.
     this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserId = user?.id ?? null;
       this.applyFilter();
     });
+    // Load the user directory once and persist the list locally.
     this.userService
       .getDirectory()
       .pipe(takeUntil(this.destroy$))
@@ -50,21 +53,25 @@ export class UserDirectoryComponent implements OnDestroy, OnInit {
   }
 
   ngOnDestroy(): void {
+    // Complete subscriptions when the component is destroyed.
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   trackByUser(_index: number, user: UserSummary): string {
+    // trackBy function for better ngFor performance.
     return user.id;
   }
 
   onSearch(term: string): void {
+    // Update the search term and re-run the filter whenever the user types.
     this.search = term;
     this.hasSearched = true;
     this.applyFilter();
   }
 
   private applyFilter(): void {
+    // Filter results against the search term while hiding the current user entry.
     const normalized = this.search.trim().toLowerCase();
     const visibleUsers = this.excludeCurrentUser(this.users);
     if (!this.hasSearched) {
@@ -79,6 +86,7 @@ export class UserDirectoryComponent implements OnDestroy, OnInit {
   }
 
   private excludeCurrentUser(users: UserSummary[]): UserSummary[] {
+    // Prevents the directory from showing the logged-in user (reduces UI clutter).
     if (!this.currentUserId) {
       return users;
     }

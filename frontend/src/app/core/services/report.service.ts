@@ -18,6 +18,7 @@ interface ReportedCache {
 }
 
 @Injectable({ providedIn: 'root' })
+// Handles reporting actions and caches which targets a user already reported.
 export class ReportService {
   private readonly baseUrl = environment.apiUrl;
   private readonly storageKey = 'maaref-reported-targets';
@@ -27,6 +28,7 @@ export class ReportService {
     this.restoreReportedTargets();
   }
 
+  // Submits a report against a user and updates local cache.
   reportUser(userId: string, reason: string, reporterId: string | null): Observable<void> {
     return this.http
       .post<void>(
@@ -37,6 +39,7 @@ export class ReportService {
       .pipe(tap(() => this.markUserReported(userId, reporterId)));
   }
 
+  // Submits a report against a post and updates local cache.
   reportPost(postId: string, reason: string, reporterId: string | null): Observable<void> {
     return this.http
       .post<void>(
@@ -47,6 +50,7 @@ export class ReportService {
       .pipe(tap(() => this.markPostReported(postId, reporterId)));
   }
 
+  // Checks if the given user has already reported the specified post.
   hasReportedPost(postId: string, reporterId: string | null): boolean {
     if (!reporterId || !postId) {
       return false;
@@ -54,6 +58,7 @@ export class ReportService {
     return this.reportedTargets.get(reporterId)?.posts.has(postId) ?? false;
   }
 
+  // Checks if the given user has already reported the specified user.
   hasReportedUser(userId: string, reporterId: string | null): boolean {
     if (!reporterId || !userId) {
       return false;
@@ -61,6 +66,7 @@ export class ReportService {
     return this.reportedTargets.get(reporterId)?.users.has(userId) ?? false;
   }
 
+  // Marks a post as reported locally so we can disable the button client-side.
   private markPostReported(postId: string, reporterId: string | null): void {
     if (!postId || !reporterId) {
       return;
@@ -70,6 +76,7 @@ export class ReportService {
     this.persistReportedTargets();
   }
 
+  // Marks a user as reported locally.
   private markUserReported(userId: string, reporterId: string | null): void {
     if (!userId || !reporterId) {
       return;
@@ -79,6 +86,7 @@ export class ReportService {
     this.persistReportedTargets();
   }
 
+  // Ensures we have a Set cache for the provided user id.
   private ensureCache(userId: string): ReportedCache {
     if (!this.reportedTargets.has(userId)) {
       this.reportedTargets.set(userId, { posts: new Set(), users: new Set() });
@@ -86,6 +94,7 @@ export class ReportService {
     return this.reportedTargets.get(userId)!;
   }
 
+  // Restores cached reported targets from localStorage during service init.
   private restoreReportedTargets(): void {
     const storage = this.getStorage();
     if (!storage) {
@@ -109,6 +118,7 @@ export class ReportService {
     }
   }
 
+  // Persists the current reported target cache to localStorage.
   private persistReportedTargets(): void {
     const storage = this.getStorage();
     if (!storage) {
@@ -128,6 +138,7 @@ export class ReportService {
     }
   }
 
+  // Guarded access to window.localStorage (no-op during SSR).
   private getStorage(): Storage | null {
     if (typeof window === 'undefined') {
       return null;

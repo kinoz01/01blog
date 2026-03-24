@@ -16,6 +16,7 @@ import { ReportService } from '../../core/services/report.service';
   templateUrl: './post-detail.component.html',
   styleUrl: './post-detail.component.scss'
 })
+// Post detail view responsible for displaying a single post, comments, and moderation actions.
 export class PostDetailComponent implements OnDestroy, OnInit {
   post: Post | null = null;
   isLoading = true;
@@ -39,10 +40,12 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroy$ = new Subject<void>();
 
+  // Form users fill out to leave a comment.
   readonly commentForm = this.fb.nonNullable.group({
     content: ['', [Validators.required, Validators.maxLength(this.commentMaxLength)]]
   });
 
+  // Report modal form for describing why the post should be moderated.
   readonly reportForm = this.fb.nonNullable.group({
     reason: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(this.reportMaxLength)]]
   });
@@ -93,6 +96,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   toggleLike(): void {
+    // Prevent rapid double clicks; toggles between like/unlike endpoints.
     if (!this.post || this.likeInProgress) {
       return;
     }
@@ -113,6 +117,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   openReportModal(): void {
+    // Only non-owners who haven't already reported may open the modal.
     if (this.isOwner() || this.hasReportedPost()) {
       return;
     }
@@ -122,6 +127,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   closeReportModal(): void {
+    // Reset the form state on close so it's clean next time.
     this.reportModalOpen = false;
     this.reportForm.reset();
     this.reportSubmitting = false;
@@ -129,6 +135,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   submitReport(): void {
+    // Validates, asks for confirmation, then submits a report.
     if (!this.post || this.hasReportedPost()) {
       return;
     }
@@ -155,6 +162,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   submitComment(): void {
+    // Adds a comment to the post; invalid forms are marked touched to show errors.
     if (!this.post) {
       return;
     }
@@ -197,6 +205,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   canReportPost(): boolean {
+    // Viewer cannot report their own post, and we block admins from reporting admins.
     if (!this.post || this.isOwner()) {
       return false;
     }
@@ -207,6 +216,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   hasReportedPost(): boolean {
+    // Checks the client cache that tracks which posts this user has reported.
     if (!this.post) {
       return false;
     }
@@ -214,6 +224,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   canDeleteComment(comment: PostComment): boolean {
+    // Only the comment author or an admin may delete.
     if (!this.currentUserId) {
       return false;
     }
@@ -224,10 +235,12 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   }
 
   isCommentDeletePending(commentId: string): boolean {
+    // Used to disable delete buttons while waiting for the API response.
     return this.commentDeletionState.has(commentId);
   }
 
   deleteComment(comment: PostComment): void {
+    // Handles deletion with optimistic UI and error feedback.
     if (!this.post || !comment?.id) {
       return;
     }
@@ -260,6 +273,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
     });
   }
 
+  // Resolves the appropriate error message based on the API response.
   private resolveErrorMessage(error: unknown, fallback: string): string {
     if (typeof error === 'string') {
       return error;

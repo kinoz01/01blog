@@ -21,6 +21,7 @@ interface MediaPreview {
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
+// Main feed page showing posts and exposing the composer for authenticated users.
 export class HomeComponent implements OnDestroy, OnInit {
   posts: Post[] = [];
   private allPosts: Post[] = [];
@@ -45,12 +46,14 @@ export class HomeComponent implements OnDestroy, OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
+  // Composer form for creating new posts with title and description validation.
   readonly postForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
     description: ['', [Validators.required, Validators.maxLength(this.postMaxLength)]]
   });
 
   ngOnInit(): void {
+    // Load posts immediately and react to auth changes so we can filter out the user's own posts.
     this.loadPosts();
     this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserId = user?.id ?? null;
@@ -59,19 +62,23 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   ngOnDestroy(): void {
+    // Clean up subscriptions to avoid memory leaks.
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   trackByPost(_index: number, post: Post): string {
+    // trackBy for ngFor to avoid rerendering unchanged cards.
     return post.id;
   }
 
   get titleLength(): number {
+    // Used to display current title length to enforce limits.
     return this.postForm.controls.title.value?.length ?? 0;
   }
 
   get postLength(): number {
+    // Used for description character counter.
     return this.postForm.controls.description.value?.length ?? 0;
   }
 
@@ -88,6 +95,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   loadPosts(): void {
+    // Fetch the feed from the server and show loading/error state in the UI.
     this.isLoading = true;
     this.loadError = '';
     this.postService.getFeed().subscribe({
@@ -104,10 +112,12 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   openPost(post: Post): void {
+    // Navigates to the post detail view when clicking a card.
     this.router.navigate(['/posts', post.id]);
   }
 
   openProfile(userId: string, event?: Event): void {
+    // Allow name/avatar clicks to navigate to the author profile without triggering card click.
     event?.preventDefault();
     event?.stopPropagation();
     if (!userId) {
@@ -117,6 +127,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   onCardKeyDown(event: KeyboardEvent, post: Post): void {
+    // Provide keyboard accessibility so Enter/Space opens the post.
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       this.openPost(post);
@@ -124,6 +135,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   toggleLike(post: Post, event: Event): void {
+    // Optimistically toggle likes while preventing navigation when pressing the icon.
     event.stopPropagation();
     event.preventDefault();
     if (!post?.id || this.likesInProgress.has(post.id)) {
@@ -157,6 +169,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   openComposer(): void {
+    // Opens the composer modal; only allowed when logged in.
     if (!this.currentUserId) {
       return;
     }
@@ -167,6 +180,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   closeComposer(): void {
+    // Resets composer state so it starts fresh next time.
     this.composerOpen = false;
     this.composerError = '';
     this.postForm.reset();
@@ -174,6 +188,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   onFilesSelected(event: Event): void {
+    // Handles file input changes, enforces allowed types, and builds previews.
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     this.composerError = '';
@@ -211,6 +226,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   removeMedia(index: number): void {
+    // Removes a selected media preview and releases the blob URL.
     const [removed] = this.mediaPreviews.splice(index, 1);
     if (removed) {
       URL.revokeObjectURL(removed.previewUrl);
@@ -218,6 +234,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   submitPost(): void {
+    // Validates and sends the new post to the backend, showing errors when needed.
     if (this.postForm.invalid) {
       this.postForm.markAllAsTouched();
       return;
@@ -241,6 +258,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   private applyOwnerFilter(): void {
+    // Remove the current user's posts from the feed so they don't see duplicates with their profile.
     if (!this.currentUserId) {
       this.posts = [...this.allPosts];
       return;
@@ -249,16 +267,19 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   private applyPostUpdate(updatedPost: Post): void {
+    // Utility to update the in-memory posts when a like or interaction changes a single post.
     this.allPosts = this.allPosts.map((post) => (post.id === updatedPost.id ? updatedPost : post));
     this.applyOwnerFilter();
   }
 
   private resetMediaPreviews(): void {
+    // Ensures we don’t leak blob URLs when clearing the composer.
     this.mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
     this.mediaPreviews = [];
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {
+    // Normalizes unknown API errors to a friendly string.
     if (typeof error === 'string') {
       return error;
     }
@@ -267,6 +288,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   private isSupportedVideo(file: File): boolean {
+    // Avoids uploading unsupported video formats by checking both mime and extension.
     const mimeType = file.type?.toLowerCase();
     if (mimeType && this.supportedVideoMimeTypes.has(mimeType)) {
       return true;
@@ -276,6 +298,7 @@ export class HomeComponent implements OnDestroy, OnInit {
   }
 
   private isSvgFile(file: File): boolean {
+    // SVGs are blocked due to potential script injection; this helper catches them.
     const mimeType = file.type?.toLowerCase() ?? '';
     if (mimeType.includes('svg')) {
       return true;
