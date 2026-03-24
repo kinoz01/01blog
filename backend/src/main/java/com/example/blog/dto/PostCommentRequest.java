@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Request body for adding a comment to a post.
 public class PostCommentRequest {
 
 	@NotBlank

@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+// Request payload for updating an existing post's content and media list.
 public class PostUpdateRequest {
 
 	@NotBlank

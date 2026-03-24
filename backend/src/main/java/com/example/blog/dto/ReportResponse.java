@@ -9,6 +9,7 @@ import com.example.blog.model.ReportTargetType;
 import lombok.Data;
 
 @Data
+// Response returned to admins when inspecting abuse reports.
 public class ReportResponse {
 	private UUID id;
 	private ReportTargetType targetType;
@@ -21,6 +22,7 @@ public class ReportResponse {
 	private ReportedPostSummary reportedPost;
 
 	@Data
+	// Details about the user who submitted the report.
 	public static class ReporterSummary {
 		private UUID id;
 		private String name;
@@ -28,6 +30,7 @@ public class ReportResponse {
 	}
 
 	@Data
+	// Minimal info about a reported user target.
 	public static class ReportedUserSummary {
 		private UUID id;
 		private String name;
@@ -36,6 +39,7 @@ public class ReportResponse {
 	}
 
 	@Data
+	// Summary of a reported post and its author.
 	public static class ReportedPostSummary {
 		private UUID id;
 		private String title;

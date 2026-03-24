@@ -9,6 +9,7 @@ import com.example.blog.model.Role;
 import lombok.Data;
 
 @Data
+// Full representation of a post, including metrics and embedded media/comments.
 public class PostResponse {
 	private UUID id;
 	private String title;
@@ -24,6 +25,7 @@ public class PostResponse {
 	private boolean hidden;
 
 	@Data
+	// Minimal author info bundled with each post response.
 	public static class AuthorSummary {
 		private UUID id;
 		private String name;

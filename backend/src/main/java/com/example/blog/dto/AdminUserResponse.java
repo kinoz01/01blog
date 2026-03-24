@@ -8,6 +8,7 @@ import com.example.blog.model.Role;
 import lombok.Data;
 
 @Data
+// Summary of a user with moderation metadata for admin dashboards.
 public class AdminUserResponse {
 	private UUID id;
 	private String name;

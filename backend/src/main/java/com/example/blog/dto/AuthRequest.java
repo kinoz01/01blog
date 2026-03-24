@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
+// Login credentials payload.
 public class AuthRequest {
 	@NotBlank
 	@Email

@@ -1,5 +1,6 @@
 package com.example.blog.exception;
 
+// Raised when file upload or deletion operations fail.
 public class MediaStorageException extends RuntimeException {
 
 	public MediaStorageException(String message) {

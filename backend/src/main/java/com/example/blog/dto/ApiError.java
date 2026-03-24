@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+// Standard error payload returned by REST endpoints.
 public class ApiError {
 	private Instant timestamp = Instant.now();
 	private int status;
