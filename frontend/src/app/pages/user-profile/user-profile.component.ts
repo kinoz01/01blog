@@ -28,6 +28,7 @@ interface EditableMedia extends PostMedia {
   templateUrl: './user-profile.component.html',
   styleUrl: './user-profile.component.scss'
 })
+// Profile page combining read-only and owner-only post management capabilities.
 export class UserProfileComponent implements OnDestroy, OnInit {
   profile: UserProfileDetails | null = null;
   posts: Post[] = [];
@@ -67,21 +68,25 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   private readonly supportedVideoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/ogg']);
   private readonly supportedVideoExtensions = new Set(['mp4', 'webm', 'ogg']);
 
+  // Composer form used for both creating and editing posts.
   readonly postForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(this.titleMaxLength)]],
     description: ['', [Validators.required, Validators.maxLength(this.postMaxLength)]]
   });
 
+  // Report modal form for describing profile abuse.
   readonly reportForm = this.fb.nonNullable.group({
     reason: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(this.reportReasonMax)]]
   });
 
   ngOnInit(): void {
+    // Keep track of the logged-in user so we can tailor available actions.
     this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
       this.currentUserId = user?.id ?? null;
       this.currentUserRole = user?.role ?? null;
     });
 
+    // React to route changes and fetch the corresponding profile.
     this.route.paramMap
       .pipe(
         takeUntil(this.destroy$),
@@ -101,7 +106,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
         this.isLoading = false;
       });
   }
-
+  // Clean up subscriptions and revoke blob URLs when the component is destroyed to prevent memory leaks.
   ngOnDestroy(): void {
     this.resetMediaPreviews();
     this.destroy$.next();
@@ -165,6 +170,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   toggleLike(post: Post, event: MouseEvent): void {
+    // Prevent duplicate requests and propagate the like/unlike change to the feed/post list.
     event.preventDefault();
     event.stopPropagation();
     if (!post?.id || this.likesInProgress.has(post.id)) {
@@ -216,6 +222,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   toggleSubscription(): void {
+    // Subscribe or unsubscribe from the profile owner to control feed content.
     if (!this.profile || this.isProfileOwner || this.subscriptionInProgress) {
       return;
     }
@@ -242,6 +249,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   openReportModal(): void {
+    // Only non-owners who haven't already filed a report may open the modal.
     if (!this.profile || this.isProfileOwner || this.hasReportedProfile) {
       return;
     }
@@ -251,6 +259,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   closeReportModal(): void {
+    // Reset report modal state so each invocation starts clean.
     this.reportModalOpen = false;
     this.reportError = '';
     this.reportSubmitting = false;
@@ -258,6 +267,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   submitReport(): void {
+    // Validate the reason and send it to the backend (with a confirm guard).
     if (!this.profile || this.hasReportedProfile) {
       return;
     }
@@ -293,6 +303,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   openComposer(post?: Post): void {
+    // Opens the composer to edit an existing post, preloading its content/media.
     if (!post) {
       return;
     }
@@ -318,6 +329,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   closeComposer(): void {
+    // Reset composer state whether cancelling or after successful submit.
     this.composerOpen = false;
     this.editingPost = null;
     this.postForm.reset();
@@ -328,6 +340,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   onFilesSelected(event: Event): void {
+    // Handle newly selected files, enforcing type/limit restrictions.
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     this.composerError = '';
@@ -341,7 +354,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
       return;
     }
 
-    for (const file of files) {
+    for (const file of files) { // Process each file, skipping invalid ones but allowing valid files until the limit is reached.
       if (availableSlots <= 0) {
         this.composerError = `You can attach up to ${this.maxMedia} media files.`;
         break;
@@ -373,6 +386,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   removeMedia(index: number): void {
+    // Removes a newly added file before submission, releasing blob URLs.
     const [removed] = this.mediaPreviews.splice(index, 1);
     if (removed) {
       URL.revokeObjectURL(removed.previewUrl);
@@ -381,6 +395,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   submitPost(): void {
+    // Validates and dispatches the create/update post call depending on context.
     if (this.postForm.invalid) {
       this.postForm.markAllAsTouched();
       return;
@@ -414,12 +429,14 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   toggleMenu(post: Post, event: MouseEvent): void {
+    // Opens a contextual menu for edit/delete; clicking the row shouldn’t trigger navigation.
     event.preventDefault();
     event.stopPropagation();
     this.menuOpenFor = this.menuOpenFor === post.id ? null : post.id;
   }
 
   editPost(post: Post, event: MouseEvent): void {
+    // Preloads the composer with the post being edited.
     event.preventDefault();
     event.stopPropagation();
     this.menuOpenFor = null;
@@ -427,6 +444,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   deletePost(post: Post, event: MouseEvent): void {
+    // Performs deletion with confirmation and updates in-memory state.
     event.preventDefault();
     event.stopPropagation();
     if (this.deleteInProgressId === post.id) {
@@ -458,19 +476,22 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     });
   }
 
+  // Checks if the current user is the author of the post to conditionally show edit/delete options.
   isOwner(post: Post): boolean {
     return !!this.currentUserId && post.author.id === this.currentUserId;
   }
 
-  toggleExistingMedia(media: EditableMedia): void {
+  toggleExistingMedia(media: EditableMedia): void { // Marks/unmarks existing media for removal when editing a post.
     media.markedForRemoval = !media.markedForRemoval;
   }
 
+  // Closes any open menus when clicking outside to ensure only one menu is open at a time.
   @HostListener('document:click')
   closeMenus(): void {
     this.menuOpenFor = null;
   }
-
+  
+  // method for generating user initials for avatar placeholders when no profile picture is available.
   getInitials(name: string): string {
     if (!name) {
       return '?';
@@ -485,6 +506,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     return initials ? initials.toUpperCase() : parts[0].slice(0, 2).toUpperCase();
   }
 
+  // Additional helper methods for error handling, media validation, and state updates.
   private loadProfile(userId: string) {
     this.error = '';
     this.isLoading = true;
@@ -502,11 +524,13 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   private resetMediaPreviews(): void {
+    // Release temporary URLs so the browser can reclaim memory.
     this.mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
     this.mediaPreviews = [];
   }
 
   private updateExistingPost(post: Post, title: string, description: string): void {
+    // Sends updates for an existing post, tracking removed media and newly added files.
     const removeMediaIds = this.existingMedia.filter((media) => media.markedForRemoval).map((media) => media.id);
     const mediaFiles = this.mediaPreviews.map((preview) => preview.file);
     this.postService.updatePost(post.id, { title, description, removeMediaIds, media: mediaFiles }).subscribe({
@@ -523,6 +547,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {
+    // Central helper to convert unknown API errors into readable messages.
     if (typeof error === 'string') {
       return error;
     }
@@ -531,6 +556,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   private isSupportedVideo(file: File): boolean {
+    // Restrict uploads to video formats we know the backend can handle.
     const mimeType = file.type?.toLowerCase();
     if (mimeType && this.supportedVideoMimeTypes.has(mimeType)) {
       return true;
@@ -540,6 +566,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   private isSvgFile(file: File): boolean {
+    // Blocks SVG uploads due to potential XSS issues.
     const mimeType = file.type?.toLowerCase() ?? '';
     if (mimeType.includes('svg')) {
       return true;
@@ -549,6 +576,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   }
 
   private applyPostUpdate(updatedPost: Post): void {
+    // Updates local post lists so UI reflects edits/like counts.
     let didUpdate = false;
     this.posts = this.posts.map((item) => {
       if (item.id === updatedPost.id) {

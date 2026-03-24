@@ -13,6 +13,7 @@ import { NotificationService } from '../../core/services/notification.service';
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.scss'
 })
+// Simple notification center allowing users to view and dismiss their alerts.
 export class NotificationsComponent implements OnDestroy, OnInit {
   notifications: Notification[] = [];
   isLoading = true;
@@ -23,14 +24,17 @@ export class NotificationsComponent implements OnDestroy, OnInit {
   private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
+    // Fetch notifications as soon as the component mounts.
     this.refresh();
   }
 
   ngOnDestroy(): void {
+    // Complete the notifier to avoid leaking the refresh subscription.
     this.destroy$.next();
     this.destroy$.complete();
   }
 
+  // Reloads the list and updates loading/error state so the template can react.
   refresh(): void {
     this.isLoading = true;
     this.error = '';
@@ -50,6 +54,7 @@ export class NotificationsComponent implements OnDestroy, OnInit {
       });
   }
 
+  // Dismisses a notification locally after confirming the backend deletion succeeded.
   dismiss(notification: Notification): void {
     if (this.deleting[notification.id]) {
       return;
@@ -68,6 +73,7 @@ export class NotificationsComponent implements OnDestroy, OnInit {
     });
   }
 
+  // trackBy to avoid rerendering list items unnecessarily.
   trackByNotification(_index: number, item: Notification): string {
     return item.id;
   }
