@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -47,7 +48,7 @@ public class ReportService {
 	 * targeting themselves.
 	 */
 	@Transactional
-	public void reportUser(UUID userId, ReportRequest request, User reporter) {
+	public void reportUser(@NonNull UUID userId, ReportRequest request, User reporter) {
 		User actor = requireActiveUser(reporter);
 		User target = userRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -67,7 +68,7 @@ public class ReportService {
 	 * Stores a report targeting a post. Authors cannot report their own content.
 	 */
 	@Transactional
-	public void reportPost(UUID postId, ReportRequest request, User reporter) {
+	public void reportPost(@NonNull UUID postId, ReportRequest request, User reporter) {
 		User actor = requireActiveUser(reporter);
 		Post post = postRepository.findById(postId)
 				.orElseThrow(() -> new ResourceNotFoundException("Post not found"));
@@ -98,7 +99,7 @@ public class ReportService {
 	 * Marks a single report as resolved and records the timestamp.
 	 */
 	@Transactional
-	public ReportResponse resolveReport(UUID reportId, User admin) {
+	public ReportResponse resolveReport(@NonNull UUID reportId, User admin) {
 		ensureAdmin(admin);
 		Report report = reportRepository.findById(reportId)
 				.orElseThrow(() -> new ResourceNotFoundException("Report not found"));
@@ -114,8 +115,11 @@ public class ReportService {
 	 * Bulk-resolves all open reports against a specific user.
 	 */
 	@Transactional
-	public void resolveReportsForUser(UUID userId) {
+	public void resolveReportsForUser(@NonNull UUID userId) {
 		List<Report> reports = reportRepository.findAllByReportedUserIdAndStatus(userId, ReportStatus.OPEN);
+		if (reports == null || reports.isEmpty()) {
+			return;
+		}
 		for (Report report : reports) {
 			report.setStatus(ReportStatus.RESOLVED);
 			report.setResolvedAt(Instant.now());
@@ -127,8 +131,11 @@ public class ReportService {
 	 * Bulk-resolves open reports for a post (typically after moderation).
 	 */
 	@Transactional
-	public void resolveReportsForPost(UUID postId) {
+	public void resolveReportsForPost(@NonNull UUID postId) {
 		List<Report> reports = reportRepository.findAllByReportedPostIdAndStatus(postId, ReportStatus.OPEN);
+		if (reports == null || reports.isEmpty()) {
+			return;
+		}
 		for (Report report : reports) {
 			report.setStatus(ReportStatus.RESOLVED);
 			report.setResolvedAt(Instant.now());

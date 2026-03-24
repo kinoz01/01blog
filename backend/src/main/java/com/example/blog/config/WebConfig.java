@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -24,7 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
 	 * issues and let Spring cache responses for an hour to reduce disk reads.
 	 */
 	@Override
-	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+	public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
 		Path mediaPath = Paths.get(mediaStoragePath).toAbsolutePath().normalize();
 		String location = mediaPath.toUri().toString();
 		registry.addResourceHandler("/media/**").addResourceLocations(location).setCachePeriod(3600);

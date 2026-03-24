@@ -1,5 +1,6 @@
 package com.example.blog.exception;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpMethod;
@@ -56,8 +57,9 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<ApiError> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex,
 			WebRequest request) {
-		String supported = ex.getSupportedHttpMethods() == null ? "none"
-				: ex.getSupportedHttpMethods().stream().map(HttpMethod::name).collect(Collectors.joining(", "));
+		Set<HttpMethod> supportedMethods = ex.getSupportedHttpMethods();
+		String supported = supportedMethods == null ? "none"
+				: supportedMethods.stream().map(HttpMethod::name).collect(Collectors.joining(", "));
 		String message = String.format("Request method '%s' is not supported. Supported methods: %s", ex.getMethod(),
 				supported);
 		return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);

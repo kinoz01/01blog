@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,7 +102,7 @@ public class AdminService {
 	 * acknowledge a report without taking further action.
 	 */
 	@Transactional
-	public ReportResponse resolveReport(UUID reportId, User admin) {
+	public ReportResponse resolveReport(@NonNull UUID reportId, User admin) {
 		ensureAdmin(admin);
 		return reportService.resolveReport(reportId, admin);
 	}
@@ -110,7 +111,7 @@ public class AdminService {
 	 * Bans a non-admin user and resolves any active reports targeting them.
 	 */
 	@Transactional
-	public void banUser(UUID targetUserId, User admin) {
+	public void banUser(@NonNull UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
 		ensureAdmin(admin);
 		if (target.getRole() == Role.ADMIN) {
@@ -127,7 +128,7 @@ public class AdminService {
 	 * Restores access to a previously banned account.
 	 */
 	@Transactional
-	public void unbanUser(UUID targetUserId, User admin) {
+	public void unbanUser(@NonNull UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
 		ensureAdmin(admin);
 		if (target.isBanned()) {
@@ -141,7 +142,7 @@ public class AdminService {
 	 * including any related reports and notifications.
 	 */
 	@Transactional
-	public void removeUser(UUID targetUserId, User admin) {
+	public void removeUser(@NonNull UUID targetUserId, User admin) {
 		User target = getManagedUser(targetUserId);
 		ensureAdmin(admin);
 		if (target.getRole() == Role.ADMIN) {
@@ -149,8 +150,12 @@ public class AdminService {
 		}
 		List<Post> posts = postRepository.findAllByAuthorIdOrderByCreatedAtDesc(target.getId());
 		for (Post post : posts) {
-			reportService.deleteReportsForPost(post.getId());
-			postService.deletePost(post.getId(), admin);
+			UUID postId = post.getId();
+			if (postId == null) {
+				continue;
+			}
+			reportService.deleteReportsForPost(postId);
+			postService.deletePost(postId, admin);
 		}
 		postLikeRepository.deleteByUserId(target.getId());
 		postCommentRepository.deleteByAuthorId(target.getId());
@@ -166,7 +171,7 @@ public class AdminService {
 	 * Flags a post as hidden (soft delete) and resolves associated reports.
 	 */
 	@Transactional
-	public PostResponse hidePost(UUID postId, User admin) {
+	public PostResponse hidePost(@NonNull UUID postId, User admin) {
 		ensureAdmin(admin);
 		PostResponse response = postService.setPostHidden(postId, true, admin);
 		reportService.resolveReportsForPost(postId);
@@ -177,7 +182,7 @@ public class AdminService {
 	 * Reverses `hidePost`, making the content visible again.
 	 */
 	@Transactional
-	public PostResponse unhidePost(UUID postId, User admin) {
+	public PostResponse unhidePost(@NonNull UUID postId, User admin) {
 		ensureAdmin(admin);
 		return postService.setPostHidden(postId, false, admin);
 	}
@@ -186,7 +191,7 @@ public class AdminService {
 	 * Hard-deletes a post along with any reports pointing to it.
 	 */
 	@Transactional
-	public void deletePost(UUID postId, User admin) {
+	public void deletePost(@NonNull UUID postId, User admin) {
 		ensureAdmin(admin);
 		reportService.deleteReportsForPost(postId);
 		postService.deletePost(postId, admin);
@@ -207,7 +212,7 @@ public class AdminService {
 	/**
 	 * Loads a user or throws a 404-style exception when the id is unknown.
 	 */
-	private User getManagedUser(UUID userId) {
+	private User getManagedUser(@NonNull UUID userId) {
 		return userRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
 	}
