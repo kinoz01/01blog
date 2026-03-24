@@ -17,6 +17,9 @@ import com.example.blog.service.AuthService;
 import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 
+/**
+ * Handles registration, login, and the authenticated user's profile lookup.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -29,18 +32,21 @@ public class AuthController {
 
 	@PostMapping("/register")
 	@PermitAll
+	// Creates a new account and returns the JWT/session payload.
 	public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
 		return ResponseEntity.ok(authService.register(request));
 	}
 
 	@PostMapping("/login")
 	@PermitAll
+	// Authenticates credentials and responds with a JWT.
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
 		return ResponseEntity.ok(authService.authenticate(request));
 	}
 
 	@GetMapping("/me")
 	@PreAuthorize("isAuthenticated()")
+	// Returns the profile for the currently authenticated principal.
 	public ResponseEntity<UserResponse> me() {
 		return ResponseEntity.ok(authService.getCurrentUserProfile());
 	}
