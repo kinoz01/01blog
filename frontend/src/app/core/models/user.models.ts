@@ -1,5 +1,6 @@
 import { Post } from './post.models';
 
+// Detailed profile view returned from /users/:id/profile.
 export interface UserProfileDetails {
   id: string;
   name: string;
@@ -11,6 +12,7 @@ export interface UserProfileDetails {
   subscribed: boolean;
 }
 
+// Minimal user document used for directories/autocomplete.
 export interface UserSummary {
   id: string;
   name: string;

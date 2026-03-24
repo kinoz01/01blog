@@ -1,5 +1,7 @@
+// Media types supported by posts.
 export type MediaKind = 'IMAGE' | 'VIDEO';
 
+// Metadata for a single media attachment on a post.
 export interface PostMedia {
   id: string;
   url: string;
@@ -8,12 +10,14 @@ export interface PostMedia {
   originalFileName?: string;
 }
 
+// Lightweight user info bundled with posts/comments.
 export interface AuthorSummary {
   id: string;
   name: string;
   role: 'USER' | 'ADMIN';
 }
 
+// Comment entity rendered beneath posts.
 export interface PostComment {
   id: string;
   content: string;
@@ -22,6 +26,7 @@ export interface PostComment {
   author: AuthorSummary;
 }
 
+// Main post model consumed throughout the UI.
 export interface Post {
   id: string;
   title: string;

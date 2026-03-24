@@ -1,6 +1,9 @@
+// Types of entities that can be reported.
 export type ReportTargetType = 'USER' | 'POST';
+// Workflow states for a report.
 export type ReportStatus = 'OPEN' | 'RESOLVED';
 
+// Full report payload shown in the admin moderation queue.
 export interface ReportSummary {
   id: string;
   targetType: ReportTargetType;
