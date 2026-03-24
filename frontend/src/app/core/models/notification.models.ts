@@ -1,3 +1,4 @@
+// Notification items shown in the activity list/toast.
 export interface Notification {
   id: string;
   type: 'POST_PUBLISHED';

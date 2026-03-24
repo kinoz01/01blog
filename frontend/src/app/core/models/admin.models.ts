@@ -1,3 +1,4 @@
+// Admin dashboard representation of a user with moderation metadata.
 export interface AdminUser {
   id: string;
   name: string;
