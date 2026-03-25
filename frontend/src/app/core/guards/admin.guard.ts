@@ -16,11 +16,12 @@ export const adminGuard: CanActivateFn = () => {
     // switchMap lets us branch into async checks (cached user vs fetch).
     switchMap((state) => {
       // No token present: redirect to login.
-      if (!state?.token) {
+      if (!state || !state.token) {
         return of(router.parseUrl('/login'));
       }
-      // Token + cached user: check the role immediately.
-      if (state.user) {
+      const needsValidation = !state.profileValidated;
+      // Token + cached user: check the role immediately if we've validated the profile for this session.
+      if (state.user && !needsValidation) {
         return of(state.user.role === 'ADMIN' ? true : router.parseUrl('/home'));
       }
       // Otherwise hit /auth/me to fetch the profile before deciding.

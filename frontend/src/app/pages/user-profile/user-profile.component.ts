@@ -10,6 +10,7 @@ import { UserService } from '../../core/services/user.service';
 import { PostService } from '../../core/services/post.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ReportService } from '../../core/services/report.service';
+import { ConfirmationService } from '../../core/services/confirmation.service';
 
 interface MediaPreview {
   file: File;
@@ -67,6 +68,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
   private readonly destroy$ = new Subject<void>();
   private readonly supportedVideoMimeTypes = new Set(['video/mp4', 'video/webm', 'video/ogg']);
   private readonly supportedVideoExtensions = new Set(['mp4', 'webm', 'ogg']);
+  private readonly confirmationService = inject(ConfirmationService);
 
   // Composer form used for both creating and editing posts.
   readonly postForm = this.fb.nonNullable.group({
@@ -93,8 +95,8 @@ export class UserProfileComponent implements OnDestroy, OnInit {
         switchMap((params) => {
           const userId = params.get('userId');
           if (!userId) {
-            this.error = 'We could not find that user.';
             this.isLoading = false;
+            this.redirectToUserDirectory();
             return of(null);
           }
           return this.loadProfile(userId);
@@ -221,9 +223,21 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     return description?.length > this.previewLength;
   }
 
-  toggleSubscription(): void {
+  async toggleSubscription(): Promise<void> {
     // Subscribe or unsubscribe from the profile owner to control feed content.
     if (!this.profile || this.isProfileOwner || this.subscriptionInProgress) {
+      return;
+    }
+    const isUnsubscribing = this.profile.subscribed;
+    const confirmed = await this.confirmationService.confirm({
+      title: isUnsubscribing ? 'Unsubscribe' : 'Subscribe',
+      message: isUnsubscribing
+        ? `Stop receiving updates from ${this.profile.name}?`
+        : `Subscribe to ${this.profile.name}'s updates?`,
+      confirmLabel: isUnsubscribing ? 'Unsubscribe' : 'Subscribe',
+      tone: isUnsubscribing ? 'danger' : 'primary'
+    });
+    if (!confirmed) {
       return;
     }
     this.subscriptionError = '';
@@ -266,7 +280,7 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     this.reportForm.reset();
   }
 
-  submitReport(): void {
+  async submitReport(): Promise<void> {
     // Validate the reason and send it to the backend (with a confirm guard).
     if (!this.profile || this.hasReportedProfile) {
       return;
@@ -275,7 +289,13 @@ export class UserProfileComponent implements OnDestroy, OnInit {
       this.reportForm.markAllAsTouched();
       return;
     }
-    if (!confirm('Submit this report for review?')) {
+    const confirmed = await this.confirmationService.confirm({
+      title: 'Report profile',
+      message: 'Submit this report for review?',
+      confirmLabel: 'Submit report',
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     this.reportSubmitting = true;
@@ -443,14 +463,19 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     this.openComposer(post);
   }
 
-  deletePost(post: Post, event: MouseEvent): void {
+  async deletePost(post: Post, event: MouseEvent): Promise<void> {
     // Performs deletion with confirmation and updates in-memory state.
     event.preventDefault();
     event.stopPropagation();
     if (this.deleteInProgressId === post.id) {
       return;
     }
-    const confirmed = confirm('Delete this post? This action cannot be undone.');
+    const confirmed = await this.confirmationService.confirm({
+      title: 'Delete post',
+      message: 'Delete this post? This action cannot be undone.',
+      confirmLabel: 'Delete post',
+      tone: 'danger'
+    });
     if (!confirmed) {
       return;
     }
@@ -512,6 +537,11 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     this.isLoading = true;
     return this.userService.getProfile(userId).pipe(
       catchError((err) => {
+        if (this.shouldRedirectToUserDirectory(err)) {
+          this.isLoading = false;
+          this.redirectToUserDirectory();
+          return of(null);
+        }
         const message =
           typeof err === 'string'
             ? err
@@ -527,6 +557,15 @@ export class UserProfileComponent implements OnDestroy, OnInit {
     // Release temporary URLs so the browser can reclaim memory.
     this.mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
     this.mediaPreviews = [];
+  }
+
+  private shouldRedirectToUserDirectory(error: unknown): boolean {
+    const status = (error as { status?: number })?.status;
+    return status === 404 || status === 400;
+  }
+
+  private redirectToUserDirectory(): void {
+    this.router.navigate(['/users']);
   }
 
   private updateExistingPost(post: Post, title: string, description: string): void {

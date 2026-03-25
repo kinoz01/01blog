@@ -7,6 +7,7 @@ import { AdminService } from '../../core/services/admin.service';
 import { Observable, forkJoin } from 'rxjs';
 import { AdminUser } from '../../core/models/admin.models';
 import { Post } from '../../core/models/post.models';
+import { ConfirmationOptions, ConfirmationService } from '../../core/services/confirmation.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -24,6 +25,7 @@ export class AdminDashboardComponent implements OnInit {
   error = '';
   menuContext: { type: 'user' | 'post'; id: string } | null = null;
   private readonly adminService = inject(AdminService);
+  private readonly confirmationService = inject(ConfirmationService);
   // Tracks actions (ban/hide/delete) in-flight so buttons can show spinners and avoid duplicate requests.
   private readonly actionState = new Set<string>();
   // Keeps track of reports dismissed via the UI so they can be hidden without a page refresh.
@@ -53,7 +55,7 @@ export class AdminDashboardComponent implements OnInit {
     }).subscribe({
       next: ({ reports, users, posts }) => {
         this.reports = reports.filter((report) => !this.dismissedReportIds.has(report.id));
-        this.users = users;
+        this.users = this.sortUsersAlphabetically(users);
         this.posts = posts;
         this.isLoading = false;
       },
@@ -84,37 +86,85 @@ export class AdminDashboardComponent implements OnInit {
     event.stopPropagation();
   }
 
-  banUserById(userId: string): void {
+  async banUserById(userId: string): Promise<void> {
     // Wrapper so buttons can ban a user and show loading states.
+    const confirmed = await this.confirmAction({
+      title: 'Ban user',
+      message: 'Ban this user? They will no longer be able to sign in.',
+      confirmLabel: 'Ban user',
+      tone: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
     this.runAction(`ban-${userId}`, this.adminService.banUser(userId));
   }
 
-  unbanUserById(userId: string): void {
+  async unbanUserById(userId: string): Promise<void> {
     // Wrapper to unban a user via the admin API.
+    const confirmed = await this.confirmAction({
+      title: 'Unban user',
+      message: 'Unban this user and restore their access?',
+      confirmLabel: 'Unban user',
+      tone: 'primary'
+    });
+    if (!confirmed) {
+      return;
+    }
     this.runAction(`unban-${userId}`, this.adminService.unbanUser(userId));
   }
 
-  removeUserById(userId: string): void {
+  async removeUserById(userId: string): Promise<void> {
     // Prompt for confirmation since removal deletes all data.
-    if (!confirm('Remove this user and all of their content? This cannot be undone.')) {
+    const confirmed = await this.confirmAction({
+      title: 'Remove user',
+      message: 'Remove this user and all of their content? This cannot be undone.',
+      confirmLabel: 'Remove user',
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     this.runAction(`remove-${userId}`, this.adminService.removeUser(userId));
   }
 
-  hidePostById(postId: string): void {
+  async hidePostById(postId: string): Promise<void> {
     // Soft-hide a post so it’s no longer public.
+    const confirmed = await this.confirmAction({
+      title: 'Hide post',
+      message: 'Hide this post? It will be removed from public view.',
+      confirmLabel: 'Hide post',
+      tone: 'primary'
+    });
+    if (!confirmed) {
+      return;
+    }
     this.runAction(`hide-${postId}`, this.adminService.hidePost(postId));
   }
 
-  unhidePostById(postId: string): void {
+  async unhidePostById(postId: string): Promise<void> {
     // Make a previously hidden post visible again.
+    const confirmed = await this.confirmAction({
+      title: 'Unhide post',
+      message: 'Unhide this post and make it visible again?',
+      confirmLabel: 'Unhide post',
+      tone: 'primary'
+    });
+    if (!confirmed) {
+      return;
+    }
     this.runAction(`unhide-${postId}`, this.adminService.unhidePost(postId));
   }
 
-  deletePostById(postId: string): void {
+  async deletePostById(postId: string): Promise<void> {
     // Hard-delete requires confirmation and prunes posts/reports locally.
-    if (!confirm('Delete this post permanently? This cannot be undone.')) {
+    const confirmed = await this.confirmAction({
+      title: 'Delete post',
+      message: 'Delete this post permanently? This cannot be undone.',
+      confirmLabel: 'Delete post',
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     this.runAction(`delete-${postId}`, this.adminService.deletePost(postId), () => {
@@ -129,18 +179,18 @@ export class AdminDashboardComponent implements OnInit {
   toggleUserBan(user: AdminUser): void {
     // Convenience helper for toggling ban state inline in the table.
     if (user.banned) {
-      this.unbanUserById(user.id);
+      void this.unbanUserById(user.id);
     } else {
-      this.banUserById(user.id);
+      void this.banUserById(user.id);
     }
   }
 
   togglePostVisibility(post: Post): void {
     // Toggles between showing/hiding a post without needing two buttons.
     if (post.hidden) {
-      this.unhidePostById(post.id);
+      void this.unhidePostById(post.id);
     } else {
-      this.hidePostById(post.id);
+      void this.hidePostById(post.id);
     }
   }
 
@@ -150,7 +200,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!userId) {
       return;
     }
-    this.removeUserById(userId);
+    void this.removeUserById(userId);
   }
 
   banUser(report: ReportSummary): void {
@@ -159,7 +209,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!userId) {
       return;
     }
-    this.banUserById(userId);
+    void this.banUserById(userId);
   }
 
   unbanUser(report: ReportSummary): void {
@@ -168,7 +218,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!userId) {
       return;
     }
-    this.unbanUserById(userId);
+    void this.unbanUserById(userId);
   }
 
   hidePost(report: ReportSummary): void {
@@ -177,7 +227,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!postId) {
       return;
     }
-    this.hidePostById(postId);
+    void this.hidePostById(postId);
   }
 
   unhidePost(report: ReportSummary): void {
@@ -186,7 +236,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!postId) {
       return;
     }
-    this.unhidePostById(postId);
+    void this.unhidePostById(postId);
   }
 
   deletePost(report: ReportSummary): void {
@@ -195,7 +245,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!postId) {
       return;
     }
-    this.deletePostById(postId);
+    void this.deletePostById(postId);
   }
 
   private runAction<T>(key: string, action$: Observable<T>, onSuccess?: () => void): void {
@@ -215,6 +265,23 @@ export class AdminDashboardComponent implements OnInit {
         this.error = 'Unable to complete that action right now.';
         this.actionState.delete(key);
       }
+    });
+  }
+
+  private sortUsersAlphabetically(users: AdminUser[]): AdminUser[] {
+    // Preserve simple A-Z ordering so ban state toggles do not reshuffle the grid.
+    return [...users].sort((a, b) => {
+      return (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' });
+    });
+  }
+
+  private confirmAction(options: ConfirmationOptions): Promise<boolean> {
+    return this.confirmationService.confirm({
+      title: 'Confirm action',
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Confirm',
+      tone: 'primary',
+      ...options
     });
   }
 }

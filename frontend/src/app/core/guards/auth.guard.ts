@@ -17,11 +17,12 @@ export const authGuard: CanActivateFn = () => {
     // switchMap allows us to run async checks (cached user vs API call).
     switchMap((state) => {
       // No token at all: force login.
-      if (!state?.token) {
+      if (!state || !state.token) {
         return of(router.parseUrl('/login'));
       }
-      // Token plus in-memory user means we can allow immediately.
-      if (state.user) {
+      const needsValidation = !state.profileValidated;
+      // Token plus in-memory user means we can allow immediately if we've validated this session.
+      if (state.user && !needsValidation) {
         return of(true);
       }
       // Otherwise fetch /auth/me to hydrate the user before proceeding.

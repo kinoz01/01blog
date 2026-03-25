@@ -34,4 +34,5 @@ export interface AuthState {
   token: string;
   expiresAt: number;
   user: UserProfile | null;
+  profileValidated: boolean;
 }

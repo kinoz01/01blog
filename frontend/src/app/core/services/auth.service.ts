@@ -57,7 +57,8 @@ export class AuthService {
     const state: AuthState = {
       token: response.token,
       expiresAt,
-      user: response.user ?? null
+      user: response.user ?? null,
+      profileValidated: true
     };
     this.stateSubject.next(state);
     localStorage.setItem(this.storageKey, JSON.stringify(state));
@@ -69,7 +70,7 @@ export class AuthService {
     if (!current) {
       return;
     }
-    const updated: AuthState = { ...current, user };
+    const updated: AuthState = { ...current, user, profileValidated: true };
     this.stateSubject.next(updated);
     localStorage.setItem(this.storageKey, JSON.stringify(updated));
   }
@@ -83,7 +84,13 @@ export class AuthService {
     try {
       const parsed = JSON.parse(raw) as AuthState;
       if (parsed.expiresAt > Date.now()) {
-        this.stateSubject.next(parsed);
+        const restored: AuthState = {
+          token: parsed.token,
+          expiresAt: parsed.expiresAt,
+          user: parsed.user ?? null,
+          profileValidated: false
+        };
+        this.stateSubject.next(restored);
       } else {
         localStorage.removeItem(this.storageKey);
       }

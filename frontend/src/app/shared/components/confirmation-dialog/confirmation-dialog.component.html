@@ -1,0 +1,33 @@
+<ng-container *ngIf="dialogState$ | async as dialog">
+  <div class="confirmation-overlay" role="presentation">
+    <div class="backdrop" (click)="onBackdropClick()"></div>
+    <section
+      class="confirmation-panel"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="dialog.title"
+    >
+      <div class="confirmation-panel__icon" [class.confirmation-panel__icon--danger]="dialog.tone === 'danger'">
+        <i class="bi" [ngClass]="dialog.tone === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-question-circle-fill'" aria-hidden="true"></i>
+      </div>
+      <div class="confirmation-panel__body">
+        <p class="eyebrow" *ngIf="dialog.title">{{ dialog.title }}</p>
+        <h3 class="confirmation-panel__message">{{ dialog.message }}</h3>
+        <p class="confirmation-panel__description" *ngIf="dialog.description">{{ dialog.description }}</p>
+      </div>
+      <div class="confirmation-panel__actions">
+        <button type="button" class="btn btn-outline-light" (click)="close(false)">
+          {{ dialog.cancelLabel }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          [ngClass]="dialog.tone === 'danger' ? 'btn-danger' : 'btn-primary'"
+          (click)="close(true)"
+        >
+          {{ dialog.confirmLabel }}
+        </button>
+      </div>
+    </section>
+  </div>
+</ng-container>

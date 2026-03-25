@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, of, switchMap, takeUntil, catchError } from 'rxjs';
 
 import { Post, PostComment } from '../../core/models/post.models';
 import { PostService } from '../../core/services/post.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ReportService } from '../../core/services/report.service';
+import { ConfirmationService } from '../../core/services/confirmation.service';
 
 @Component({
   selector: 'app-post-detail',
@@ -34,11 +35,13 @@ export class PostDetailComponent implements OnDestroy, OnInit {
   private readonly commentDeletionState = new Set<string>();
 
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly postService = inject(PostService);
   private readonly authService = inject(AuthService);
   private readonly reportService = inject(ReportService);
   private readonly fb = inject(FormBuilder);
   private readonly destroy$ = new Subject<void>();
+  private readonly confirmationService = inject(ConfirmationService);
 
   // Form users fill out to leave a comment.
   readonly commentForm = this.fb.nonNullable.group({
@@ -62,14 +65,19 @@ export class PostDetailComponent implements OnDestroy, OnInit {
         switchMap((params) => {
           const postId = params.get('postId');
           if (!postId) {
-            this.error = 'We could not find that post.';
             this.isLoading = false;
+            this.redirectToHome();
             return of(null);
           }
           this.isLoading = true;
           this.error = '';
           return this.postService.getPost(postId).pipe(
             catchError((err) => {
+              if (this.shouldRedirectToHome(err)) {
+                this.isLoading = false;
+                this.redirectToHome();
+                return of(null);
+              }
               const message =
                 typeof err === 'string'
                   ? err
@@ -134,7 +142,7 @@ export class PostDetailComponent implements OnDestroy, OnInit {
     this.reportError = '';
   }
 
-  submitReport(): void {
+  async submitReport(): Promise<void> {
     // Validates, asks for confirmation, then submits a report.
     if (!this.post || this.hasReportedPost()) {
       return;
@@ -143,7 +151,13 @@ export class PostDetailComponent implements OnDestroy, OnInit {
       this.reportForm.markAllAsTouched();
       return;
     }
-    if (!confirm('Submit this report for review?')) {
+    const confirmed = await this.confirmationService.confirm({
+      title: 'Report post',
+      message: 'Submit this report for review?',
+      confirmLabel: 'Submit report',
+      tone: 'danger'
+    });
+    if (!confirmed) {
       return;
     }
     this.reportSubmitting = true;
@@ -280,5 +294,14 @@ export class PostDetailComponent implements OnDestroy, OnInit {
     }
     const apiMessage = (error as { error?: { message?: string } })?.error?.message;
     return apiMessage ?? fallback;
+  }
+
+  private shouldRedirectToHome(error: unknown): boolean {
+    const status = (error as { status?: number })?.status;
+    return status === 404 || status === 400;
+  }
+
+  private redirectToHome(): void {
+    this.router.navigate(['/']);
   }
 }
